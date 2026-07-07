@@ -149,6 +149,10 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .close-btn:hover{background:var(--accent-red);color:white;}
 .dir-long{background:rgba(0,212,170,0.15);color:var(--accent-green);}
 .dir-short{background:rgba(255,71,87,0.15);color:var(--accent-red);}
+.asset-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:0.68rem;font-weight:700;
+  vertical-align:middle;margin-left:8px;letter-spacing:0.3px;}
+.asset-crypto{background:rgba(255,159,10,0.16);color:#ff9f0a;border:1px solid rgba(255,159,10,0.4);}
+.asset-stock{background:rgba(74,144,217,0.14);color:var(--accent-blue);border:1px solid rgba(74,144,217,0.35);}
 </style>
 </head>
 <body>
@@ -413,7 +417,7 @@ function tradeCard(t){
       '<div class="trader-meta">'+esc(tr.fund||"")+'&bull;'+esc(tr.style||"")+'&bull;'+esc(t.date)+'</div>'+
     '</div><span class="ta '+t.action.toLowerCase()+'">'+t.action+'</span></div>'+
     '<div style="font-size:1.2rem;font-weight:700;margin-bottom:4px">'+esc(t.ticker)+
-      ' <span style="color:#a0a0b0;font-weight:400;font-size:.85rem">'+esc(t.co)+'</span></div>'+
+      ' <span style="color:#a0a0b0;font-weight:400;font-size:.85rem">'+esc(t.co)+'</span>'+(t.asset==="crypto"?'<span class="asset-badge asset-crypto">CRYPTO</span>':'<span class="asset-badge asset-stock">STOCK</span>')+'</div>'+
     '<div class="trade-details">'+
       '<div class="di"><div class="dl">Their Trade</div><div class="dv">'+fmt(t.value)+'</div></div>'+
       '<div class="di"><div class="dl">Share Price</div><div class="dv">$'+t.price+'</div></div>'+
@@ -450,9 +454,6 @@ function stratCard(s){
 
 // ---- TAB RENDERS ----
 function renderTrades(){
-  var trOpts='<option value="all">All Traders</option>'+topTraders.map(function(t){
-    return'<option value="'+t.id+'"'+(S.trader===String(t.id)?' selected':'')+'>'+esc(t.name)+'</option>';
-  }).join("");
   var fb='<div class="filter-bar">'+
     '<input type="text" id="sq" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/>'+
     '<select id="st">'+
@@ -629,7 +630,7 @@ function loadLiveData(){
       var when=d.latest_trade_date||"recent";
       var gen=d.generated_at?new Date(d.generated_at):null;
       var genStr=gen?gen.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+gen.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"";
-      setStatus('<span style="color:var(--accent-green)">&#9679; LIVE</span> &mdash; '+topTraders.length+' ARK funds &bull; latest trade '+when+' &bull; synced '+genStr);
+      setStatus('<span style="color:var(--accent-green)">&#9679; LIVE</span> &mdash; '+topTraders.length+' traders tracked &bull; latest trade '+when+' &bull; synced '+genStr);
     }else{
       throw new Error("empty data");
     }
