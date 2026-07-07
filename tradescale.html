@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#0f0f1a" />
+<meta name="theme-color" content="#0d1117" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" type="image/png" href="./icon-192.png" />
 <title>TradeScale — Track Top Traders</title>
 <style>
 :root {
-  --bg-primary:#0f0f1a; --bg-secondary:#1a1a2e; --bg-card:#16213e;
-  --accent-green:#00d4aa; --accent-red:#ff4757; --accent-blue:#4a90d9;
-  --accent-gold:#ffd700; --text-primary:#e8e8e8; --text-secondary:#a0a0b0;
-  --text-muted:#6b6b80; --border:#2a2a4a; --radius:12px;
+  --bg-primary:#0d1117; --bg-secondary:#161b22; --bg-card:#1a2130;
+  --accent-green:#2ebd85; --accent-red:#f6465d; --accent-blue:#4f8ff0;
+  --accent-gold:#e3b341; --text-primary:#e6edf3; --text-secondary:#9aa4b2;
+  --text-muted:#6e7681; --border:#262d3a; --radius:12px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -89,7 +89,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .scaled-section h4{color:var(--accent-green);font-size:0.85rem;margin-bottom:8px;}
 .scaled-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;}
 .si{font-size:0.85rem;} .si span{color:var(--text-muted);display:block;font-size:0.7rem;}
-.tog-btn{background:transparent;border:1px solid #2a2a4a;color:var(--accent-gold);
+.tog-btn{background:transparent;border:1px solid #262d3a;color:var(--accent-gold);
   padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;margin-top:12px;}
 .strat-item{padding:8px 12px;background:var(--bg-secondary);border-radius:6px;margin-bottom:6px;margin-top:8px;}
 .strat-row{display:flex;justify-content:space-between;align-items:center;}
@@ -120,7 +120,7 @@ footer a{color:var(--accent-blue);text-decoration:none;}
   .card{padding:16px;}
 }
 
-.pf-count{background:var(--accent-green);color:#0f0f1a;font-size:0.7rem;font-weight:700;
+.pf-count{background:var(--accent-green);color:#0d1117;font-size:0.7rem;font-weight:700;
   border-radius:10px;padding:1px 7px;margin-left:6px;}
 .quote-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:8px 0 4px;
   padding:8px 12px;background:rgba(74,144,217,0.08);border-radius:8px;font-size:0.85rem;}
@@ -130,8 +130,8 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .paper-btn{background:rgba(0,212,170,0.12);border:1px solid var(--accent-green);
   color:var(--accent-green);padding:8px 16px;border-radius:8px;cursor:pointer;
   font-size:0.82rem;font-weight:600;margin-top:12px;margin-right:8px;transition:all 0.15s;}
-.paper-btn:hover{background:var(--accent-green);color:#0f0f1a;}
-.paper-btn.added{background:var(--accent-green);color:#0f0f1a;}
+.paper-btn:hover{background:var(--accent-green);color:#0d1117;}
+.paper-btn.added{background:var(--accent-green);color:#0d1117;}
 .pf-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;
   margin-bottom:20px;}
 .pf-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
@@ -188,7 +188,7 @@ footer a{color:var(--accent-blue);text-decoration:none;}
   <div id="summary-banner"></div>
   <div class="tabs">
     <button class="tab active" data-tab="trades">Live Trades</button>
-    <button class="tab" data-tab="strategies">Small Stack Plays</button>
+    <button class="tab" data-tab="strategies">How to Start</button>
     <button class="tab" data-tab="portfolio">My Portfolio<span class="pf-count" id="pf-count" style="display:none">0</span></button>
     <button class="tab" data-tab="sources">Data Sources</button>
   </div>
@@ -227,21 +227,21 @@ var trades=[
   {id:8,tid:4,ticker:"GME", co:"GameStop Corp",         action:"BUY", shares:500000,  price:28.00, value:14000000,   date:"2026-07-06",port:300000000,   why:"Cash-rich balance sheet trading below book value. Contrarian deep value."}
 ];
 var strats=[
-  {id:1,title:"The Coffee Can Portfolio",min:50,risk:"low",
-   desc:"Buy and literally forget. Pick 5-10 quality companies, buy fractional shares monthly, never sell for 10+ years.",
-   steps:["Open Fidelity/Schwab account (no minimums)","Set up $10-50/week auto-invest into VOO (S&P 500 ETF)","Add individual stocks only after 6 months of consistent saving","Never check more than once a month"]},
-  {id:2,title:"Whale Watching",min:200,risk:"medium",
-   desc:"Mirror top fund managers at your scale. Buy their highest-conviction new positions from 13F filings.",
-   steps:["Track 13F filings at sec.gov (45-day delay)","Focus on NEW positions only (not additions)","Only mirror trades >3% of their portfolio (high conviction)","Use fractional shares to match allocation %"]},
-  {id:3,title:"The Wheel Strategy",min:500,risk:"medium",
-   desc:"Sell cash-secured puts on stocks you want to own. If assigned, sell covered calls. Generates 1-3% monthly income.",
-   steps:["Find stocks under $15 you would own (F, SOFI, PLTR)","Sell 1 cash-secured put at a strike you like (need 100x strike in cash)","If assigned, sell covered calls above your cost basis","Repeat. Income compounds even in flat markets."]},
-  {id:4,title:"0DTE Scalping",min:100,risk:"high",
-   desc:"Day-trade 0DTE SPY/QQQ options for quick 20-50% gains. What whales do with millions, you do with $50-200.",
-   steps:["Only trade first 30 min and last 30 min of market","Buy ATM calls/puts on SPY based on momentum","Take profit at 20-30%. Hard stop at -50%.","MAX 1 trade per day. NEVER revenge trade.","Never use rent money"]},
-  {id:5,title:"Dividend Snowball",min:100,risk:"low",
-   desc:"Build a passive income machine. Buy dividend aristocrats, reinvest all dividends. Snowball grows exponentially.",
-   steps:["Start with SCHD or VYM (dividend ETFs) for instant diversification","Add $25-100/month consistently","Enable DRIP (dividend reinvestment)","After $5K, add dividend kings (JNJ, KO, PG, O)","Goal: dividends cover one bill, then two, then all."]}
+  {id:1,title:"Buy & Forget (Coffee Can)",min:50,risk:"low",
+   desc:"The simplest way to start. Pick a few solid companies or an index fund, buy a little every month, and don't touch it for years. Time does the work.",
+   steps:["Open a free brokerage account (Fidelity, Schwab, or Robinhood — no minimum)","Set up $10–$50/week auto-invest into VOO (a fund that owns the 500 biggest US companies)","Add individual stocks only after 6 months of steady saving","Check it once a month at most — the less you tinker, the better"]},
+  {id:2,title:"Copy the Big Investors (Whale Watching)",min:200,risk:"medium",
+   desc:"Follow what famous investors and big funds are buying, at your own budget. Big funds are legally required to report their holdings — you can just read them.",
+   steps:["Check the Live Trades tab — those are real, publicly reported trades","Focus on brand-new positions (a fund buying something for the first time)","Prefer their biggest bets — the ones that are a large slice of their portfolio","Use fractional shares to match their bet size at your budget"]},
+  {id:3,title:"Get Paid to Wait (The Wheel)",min:500,risk:"medium",
+   desc:"An options income strategy: you get paid upfront to agree to buy a stock you already like at a lower price. If you end up owning it, you get paid again to sell it higher. Aims for 1–3% income per month.",
+   steps:["Pick an affordable stock you'd genuinely want to own (e.g. F, SOFI, PLTR)","Sell a “cash-secured put” — you're paid a fee to promise to buy it cheaper (you set the cash aside)","If you get the shares, sell a “covered call” — you're paid a fee to agree to sell them higher","Repeat. You collect fees even when the market goes sideways."]},
+  {id:4,title:"Same-Day Options (Advanced — High Risk)",min:100,risk:"high",
+   desc:"Fast, risky day-trading of options that expire the same day. Big potential gains, but you can lose it all just as fast. Only for money you can 100% afford to lose.",
+   steps:["Only trade the first 30 and last 30 minutes of the day","Buy simple calls (betting up) or puts (betting down) on SPY based on the trend","Take profits early at +20–30%. Set a hard stop at -50% and honor it.","One trade per day, max. Never chase a loss.","Never, ever use money you need for bills"]},
+  {id:5,title:"Passive Income (Dividend Snowball)",min:100,risk:"low",
+   desc:"Buy shares that pay you cash just for holding them, then automatically reinvest that cash to buy more. Over time the payments snowball.",
+   steps:["Start with a dividend fund like SCHD or VYM for instant variety","Add $25–$100/month consistently","Turn on automatic dividend reinvestment (DRIP) so payouts buy more shares","Once you've saved $5K, add steady payers like JNJ, KO, PG, O","Goal: let the payments cover one bill, then two, then all of them"]}
 ];
 var sources=[
   {name:"SEC EDGAR",           url:"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany",desc:"Quarterly hedge fund holdings (45-day delay)",free:true},
@@ -300,14 +300,14 @@ function scale(t,b){
   var amt=(pct/100)*b;
   var pr=t.price||t.value/(t.shares||1);
   return{pct:pct.toFixed(2),amt:amt.toFixed(2),shares:Math.floor(amt/pr),
-         frac:(amt/pr).toFixed(4),conv:pct>5?"HIGH":pct>2?"MEDIUM":"LOW"};
+         frac:(amt/pr).toFixed(4),conv:pct>5?"BIG":pct>2?"MEDIUM":"SMALL"};
 }
 function getTips(t,b){
   var r=[];
   if(b<t.price)r.push({type:"Fractional Shares",desc:"Buy $"+Math.min(b*.05,50).toFixed(0)+" worth via fractional shares on Fidelity/Robinhood",risk:"low"});
-  if(b>=100)r.push({type:"ETF Exposure",desc:"If "+t.ticker+" is in SPY/QQQ, buy the ETF for diversified exposure to same thesis",risk:"low"});
-  if(b>=500&&t.action==="BUY")r.push({type:"Poor Man Covered Call",desc:"Buy deep ITM LEAPS call (70+ delta, 1yr out) ~20% of stock cost. Sell weekly calls against it.",risk:"medium"});
-  if(b>=200&&t.action==="BUY")r.push({type:"Bull Call Spread",desc:"Buy ATM call, sell OTM call same expiry. Caps upside but cuts entry cost 50-70%.",risk:"medium"});
+  if(b>=100)r.push({type:"Buy the Whole Basket (ETF)",desc:"If "+t.ticker+" is in SPY/QQQ, buy the ETF for diversified exposure to same thesis",risk:"low"});
+  if(b>=500&&t.action==="BUY")r.push({type:"Cheaper Long-Term Ownership (PMCC)",desc:"Buy deep ITM LEAPS call (70+ delta, 1yr out) ~20% of stock cost. Sell weekly calls against it.",risk:"medium"});
+  if(b>=200&&t.action==="BUY")r.push({type:"Lower-Cost Bullish Bet (Call Spread)",desc:"Buy ATM call, sell OTM call same expiry. Caps upside but cuts entry cost 50-70%.",risk:"medium"});
   r.push({type:"Dollar-Cost Average",desc:"Split into 4 weekly buys of $"+Math.min(b*.05,25).toFixed(0)+" to reduce timing risk",risk:"low"});
   return r;
 }
@@ -379,7 +379,7 @@ function filtered(){
     if(S.sort==="date")return b.date.localeCompare(a.date);
     if(S.sort==="vd")return b.value-a.value;
     if(S.sort==="va")return a.value-b.value;
-    if(S.sort==="conv"){var o={HIGH:3,MEDIUM:2,LOW:1};return(o[scale(b,S.budget).conv]||0)-(o[scale(a,S.budget).conv]||0);}
+    if(S.sort==="conv"){var o={BIG:3,MEDIUM:2,SMALL:1};return(o[scale(b,S.budget).conv]||0)-(o[scale(a,S.budget).conv]||0);}
     return 0;
   });
   return list;
@@ -394,9 +394,9 @@ function banner(){
   id("summary-banner").innerHTML=
     '<div class="summary-banner">'+
     '<div class="summary-title">&#128202; If You Mirrored ALL Current Buys at Your $'+S.budget+' Budget:</div>'+
-    '<div class="summary-stat"><div class="val">'+fmt(total)+'</div><div class="lbl">Total Deployed</div></div>'+
-    '<div class="summary-stat"><div class="val">'+buys.length+'</div><div class="lbl">BUY Positions</div></div>'+
-    '<div class="summary-stat"><div class="val">'+sells+'</div><div class="lbl">Active SELLs</div></div>'+
+    '<div class="summary-stat"><div class="val">'+fmt(total)+'</div><div class="lbl">Total Invested</div></div>'+
+    '<div class="summary-stat"><div class="val">'+buys.length+'</div><div class="lbl">Buys</div></div>'+
+    '<div class="summary-stat"><div class="val">'+sells+'</div><div class="lbl">Sells</div></div>'+
     '<div class="summary-stat"><div class="val">'+fmt(cash)+'</div><div class="lbl">Cash Remaining</div></div>'+
     '</div>';
 }
@@ -405,7 +405,7 @@ function tradeCard(t){
   var sc=scale(t,S.budget);
   var tips=getTips(t,S.budget);
   var open=!!S.open[t.id];
-  var cc=sc.conv==="HIGH"?"g":sc.conv==="MEDIUM"?"gold":"";
+  var cc=sc.conv==="BIG"?"g":sc.conv==="MEDIUM"?"gold":"";
   var tipHtml="";
   if(open){tipHtml='<div style="margin-top:8px">'+tips.map(function(s){
     return'<div class="strat-item"><div class="strat-row"><strong style="font-size:.85rem">'+esc(s.type)+'</strong>'+
@@ -417,26 +417,26 @@ function tradeCard(t){
       '<div class="trader-meta">'+esc(tr.fund||"")+'&bull;'+esc(tr.style||"")+'&bull;'+esc(t.date)+'</div>'+
     '</div><span class="ta '+t.action.toLowerCase()+'">'+t.action+'</span></div>'+
     '<div style="font-size:1.2rem;font-weight:700;margin-bottom:4px">'+esc(t.ticker)+
-      ' <span style="color:#a0a0b0;font-weight:400;font-size:.85rem">'+esc(t.co)+'</span>'+(t.asset==="crypto"?'<span class="asset-badge asset-crypto">CRYPTO</span>':'<span class="asset-badge asset-stock">STOCK</span>')+'</div>'+
+      ' <span style="color:#9aa4b2;font-weight:400;font-size:.85rem">'+esc(t.co)+'</span>'+(t.asset==="crypto"?'<span class="asset-badge asset-crypto">CRYPTO</span>':'<span class="asset-badge asset-stock">STOCK</span>')+'</div>'+
     '<div class="trade-details">'+
       '<div class="di"><div class="dl">Their Trade</div><div class="dv">'+fmt(t.value)+'</div></div>'+
       '<div class="di"><div class="dl">Share Price</div><div class="dv">$'+t.price+'</div></div>'+
       '<div class="di"><div class="dl">% of Portfolio</div><div class="dv b">'+sc.pct+'%</div></div>'+
-      '<div class="di"><div class="dl">Conviction</div><div class="dv '+cc+'">'+sc.conv+'</div></div>'+
+      '<div class="di"><div class="dl">Bet Size</div><div class="dv '+cc+'">'+sc.conv+'</div></div>'+
     '</div>'+
-    '<div style="color:#a0a0b0;font-size:.85rem;font-style:italic;margin-bottom:12px">'+esc(t.why)+'</div>'+
+    '<div style="color:#9aa4b2;font-size:.85rem;font-style:italic;margin-bottom:12px">'+esc(t.why)+'</div>'+
     '<div class="scaled-section"><h4>Scaled to Your $'+S.budget+' Budget:</h4>'+
       '<div class="scaled-grid">'+
-        '<div class="si"><span>Your Position</span><strong style="color:#00d4aa">$'+sc.amt+'</strong></div>'+
+        '<div class="si"><span>Your Position</span><strong style="color:#2ebd85">$'+sc.amt+'</strong></div>'+
         '<div class="si"><span>Whole Shares</span><strong>'+sc.shares+'</strong></div>'+
         '<div class="si"><span>Fractional</span><strong>'+sc.frac+'</strong></div>'+
-        '<div class="si"><span>Allocation %</span><strong style="color:#4a90d9">'+sc.pct+'%</strong></div>'+
+        '<div class="si"><span>Allocation %</span><strong style="color:#4f8ff0">'+sc.pct+'%</strong></div>'+
       '</div></div>'+
     quoteRow(t)+
     '<button class="paper-btn" data-paper="'+t.id+'">+ Paper Trade This ('+ (t.action==="BUY"?"Long":"Short") +')</button>'+
     '<button class="tog-btn" data-tog="'+t.id+'">'+(open?"Hide":"Show")+' Budget Strategies ('+tips.length+')</button>'+
     tipHtml+
-    '<div style="margin-top:8px;font-size:.7rem;color:#6b6b80">Source: '+esc(tr.src||"")+'</div>'+
+    '<div style="margin-top:8px;font-size:.7rem;color:#6e7681">Source: '+esc(tr.src||"")+'</div>'+
   '</div>';
 }
 function stratCard(s){
@@ -448,7 +448,7 @@ function stratCard(s){
     '<p>'+esc(s.desc)+'</p>'+
     '<ul>'+s.steps.map(function(x){return'<li>'+esc(x)+'</li>';}).join("")+'</ul>'+
     (ok?'<div style="margin-top:12px;padding:10px 14px;background:rgba(0,212,170,.08);border-radius:8px">'+
-      '<span style="font-size:.8rem;color:#00d4aa">With your $'+S.budget+' budget, you can start this today.</span></div>':'')+
+      '<span style="font-size:.8rem;color:#2ebd85">With your $'+S.budget+' budget, you can start this today.</span></div>':'')+
   '</div>';
 }
 
@@ -464,7 +464,7 @@ function renderTrades(){
       '<option value="date"'+(S.sort==="date"?' selected':'')+'>Newest First</option>'+
       '<option value="vd"'+(S.sort==="vd"?' selected':'')+'>Largest Trade</option>'+
       '<option value="va"'+(S.sort==="va"?' selected':'')+'>Smallest Trade</option>'+
-      '<option value="conv"'+(S.sort==="conv"?' selected':'')+'>Highest Conviction</option>'+
+      '<option value="conv"'+(S.sort==="conv"?' selected':'')+'>Biggest Bets</option>'+
     '</select>'+
     '<button class="filter-tag'+(S.action==="all"?' fa':'')+'" data-act="all">All</button>'+
     '<button class="filter-tag'+(S.action==="buy"?' fb':'')+'" data-act="buy">BUY Only</button>'+
@@ -488,16 +488,16 @@ function renderStrategies(){
 function renderSources(){
   var rows=sources.map(function(s){
     return'<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
-      '<div><div style="font-weight:700">'+esc(s.name)+'</div><div style="color:#a0a0b0;font-size:.85rem">'+esc(s.desc)+'</div></div>'+
+      '<div><div style="font-weight:700">'+esc(s.name)+'</div><div style="color:#9aa4b2;font-size:.85rem">'+esc(s.desc)+'</div></div>'+
       '<div style="display:flex;align-items:center;gap:8px">'+
         '<span class="bp '+(s.free?"bf":"bpd")+'">'+(s.free?"FREE":"PAID")+'</span>'+
-        '<a href="'+s.url+'" target="_blank" rel="noopener noreferrer" style="color:#4a90d9;font-size:.8rem">Visit &rarr;</a>'+
+        '<a href="'+s.url+'" target="_blank" rel="noopener noreferrer" style="color:#4f8ff0;font-size:.8rem">Visit &rarr;</a>'+
       '</div></div>';
   }).join("");
   id("tab-body").innerHTML='<p class="intro">All data comes from legally required public disclosures &mdash; no insider information, no paid scraping.</p>'+rows+
-    '<div class="card" style="margin-top:24px;border-color:#ffd700">'+
-      '<h3 style="color:#ffd700;margin-bottom:8px">Disclosure Delay Reference</h3>'+
-      '<ul style="padding-left:20px;color:#a0a0b0;font-size:.85rem">'+
+    '<div class="card" style="margin-top:24px;border-color:#e3b341">'+
+      '<h3 style="color:#e3b341;margin-bottom:8px">Disclosure Delay Reference</h3>'+
+      '<ul style="padding-left:20px;color:#9aa4b2;font-size:.85rem">'+
         '<li><strong>SEC 13F</strong> &mdash; Hedge fund holdings, quarterly, up to 45 days after quarter end</li>'+
         '<li><strong>Congressional STOCK Act</strong> &mdash; Congress must disclose within 45 days of trade</li>'+
         '<li><strong>SEC Form 4</strong> &mdash; Corporate insiders must report within 2 business days</li>'+
@@ -505,8 +505,8 @@ function renderSources(){
         '<li><strong>Options Flow</strong> &mdash; Visible on exchanges in real-time</li>'+
       '</ul></div>'+
     '<div class="card" style="margin-top:16px">'+
-      '<h3 style="color:#4a90d9;margin-bottom:8px">Coming Next: Live Data (v2)</h3>'+
-      '<p style="color:#a0a0b0;font-size:.85rem">The next version will pull real-time ARK daily CSVs and congressional disclosure APIs automatically.</p>'+
+      '<h3 style="color:#4f8ff0;margin-bottom:8px">Coming Next: Live Data (v2)</h3>'+
+      '<p style="color:#9aa4b2;font-size:.85rem">The next version will pull real-time ARK daily CSVs and congressional disclosure APIs automatically.</p>'+
     '</div>';
 }
 
