@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#1a1a2e" />
 <title>TradeScale — Track Top Traders</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 :root {
   --bg-primary: #0f0f1a;
@@ -98,6 +95,13 @@ body {
 .scaled-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
 .scaled-item { font-size: 0.85rem; }
 .scaled-item span { color: var(--text-muted); display: block; font-size: 0.7rem; }
+.strat-toggle-btn {
+  background: transparent; border: 1px solid #2a2a4a; color: var(--accent-gold);
+  padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+}
+.strat-item { padding: 8px 12px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 6px; }
+.strat-item-row { display: flex; justify-content: space-between; align-items: center; }
+.strat-item p { color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px; }
 .strategy-card {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 24px; margin-bottom: 16px;
@@ -108,11 +112,18 @@ body {
   font-size: 0.7rem; font-weight: 600; margin-bottom: 12px;
 }
 .risk-low { background: rgba(0,212,170,0.15); color: var(--accent-green); }
-.risk-med { background: rgba(255,215,0,0.15); color: var(--accent-gold); }
+.risk-med, .risk-medium { background: rgba(255,215,0,0.15); color: var(--accent-gold); }
 .risk-high { background: rgba(255,71,87,0.15); color: var(--accent-red); }
 .strategy-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 8px; }
 .strategy-card ul { padding-left: 20px; color: var(--text-secondary); font-size: 0.85rem; }
 .strategy-card li { margin-bottom: 4px; }
+.source-row {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+.badge-free { background: rgba(0,212,170,0.15); color: var(--accent-green); }
+.badge-paid { background: rgba(255,71,87,0.15); color: var(--accent-red); }
+.badge-pill { padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+.intro-text { color: var(--text-secondary); margin-bottom: 16px; font-size: 0.85rem; }
 @media (max-width: 600px) {
   .header h1 { font-size: 1.4rem; }
   .trade-details { grid-template-columns: 1fr 1fr; }
@@ -123,20 +134,20 @@ body {
 <body>
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
-const { useState } = React;
+<script>
+"use strict";
 
 // ============ DATA ============
-const topTraders = [
+var topTraders = [
   { id: 1, name: "Warren Buffett", fund: "Berkshire Hathaway", portfolioSize: 350000000000, style: "Value Investing", source: "SEC 13F Filing" },
   { id: 2, name: "Bill Ackman", fund: "Pershing Square", portfolioSize: 12000000000, style: "Activist Value", source: "SEC 13F Filing" },
   { id: 3, name: "Nancy Pelosi", fund: "Congressional Trading", portfolioSize: 200000000, style: "Growth/Tech", source: "Congressional Disclosure" },
   { id: 4, name: "Michael Burry", fund: "Scion Asset Management", portfolioSize: 300000000, style: "Contrarian/Short", source: "SEC 13F Filing" },
   { id: 5, name: "Cathie Wood", fund: "ARK Invest", portfolioSize: 14000000000, style: "Disruptive Innovation", source: "Daily Trade Disclosure" },
-  { id: 6, name: "Steve Cohen", fund: "Point72", portfolioSize: 35000000000, style: "Quantitative/Multi-Strategy", source: "SEC 13F Filing" },
+  { id: 6, name: "Steve Cohen", fund: "Point72", portfolioSize: 35000000000, style: "Quantitative/Multi-Strategy", source: "SEC 13F Filing" }
 ];
 
-const recentTrades = [
+var recentTrades = [
   { id: 1, traderId: 1, ticker: "OXY", company: "Occidental Petroleum", action: "BUY", shares: 5000000, price: 58.50, value: 292500000, date: "2026-06-28", portfolioSize: 350000000000, rationale: "Continued accumulation. Now owns 28% of company. Long-term energy thesis." },
   { id: 2, traderId: 5, ticker: "TSLA", company: "Tesla Inc", action: "BUY", shares: 150000, price: 285.00, value: 42750000, date: "2026-07-03", portfolioSize: 14000000000, rationale: "Robotaxi catalyst approaching. AI/autonomy play at scale." },
   { id: 3, traderId: 4, ticker: "NVDA", company: "NVIDIA Corp", action: "SELL", shares: 100000, price: 135.00, value: 13500000, date: "2026-07-01", portfolioSize: 300000000, rationale: "Trimming AI winner. Believes valuation stretched at 40x forward earnings." },
@@ -144,10 +155,10 @@ const recentTrades = [
   { id: 5, traderId: 2, ticker: "GOOGL", company: "Alphabet Inc", action: "BUY", shares: 2000000, price: 185.00, value: 370000000, date: "2026-07-02", portfolioSize: 12000000000, rationale: "AI monetization underappreciated. Search + Cloud + Waymo optionality." },
   { id: 6, traderId: 6, ticker: "META", company: "Meta Platforms", action: "BUY", shares: 500000, price: 510.00, value: 255000000, date: "2026-07-05", portfolioSize: 35000000000, rationale: "Reels monetization + AI assistants driving engagement growth." },
   { id: 7, traderId: 1, ticker: "AAPL", company: "Apple Inc", action: "SELL", shares: 10000000, price: 220.00, value: 2200000000, date: "2026-06-25", portfolioSize: 350000000000, rationale: "Continued trimming of largest position. Tax optimization + rebalancing." },
-  { id: 8, traderId: 4, ticker: "GME", company: "GameStop Corp", action: "BUY", shares: 500000, price: 28.00, value: 14000000, date: "2026-07-06", portfolioSize: 300000000, rationale: "Cash-rich balance sheet trading below book value. Contrarian deep value." },
+  { id: 8, traderId: 4, ticker: "GME", company: "GameStop Corp", action: "BUY", shares: 500000, price: 28.00, value: 14000000, date: "2026-07-06", portfolioSize: 300000000, rationale: "Cash-rich balance sheet trading below book value. Contrarian deep value." }
 ];
 
-const smallStackStrategies = [
+var smallStackStrategies = [
   { id: 1, title: "The Coffee Can Portfolio", minBudget: 50, risk: "low",
     description: "Buy and literally forget. Pick 5-10 quality companies, buy fractional shares monthly, never sell for 10+ years.",
     steps: ["Open Fidelity/Schwab account (no minimums)", "Set up $10-50/week auto-invest into VOO (S&P 500 ETF)", "Add individual stocks only after 6 months of consistent saving", "Never check more than once a month"] },
@@ -162,38 +173,52 @@ const smallStackStrategies = [
     steps: ["Only trade first 30 min and last 30 min of market", "Buy ATM calls/puts on SPY based on momentum", "Take profit at 20-30% gain. Hard stop at -50%.", "MAX 1 trade per day. NEVER revenge trade.", "This is gambling with an edge -- never use rent money"] },
   { id: 5, title: "Dividend Snowball", minBudget: 100, risk: "low",
     description: "Build a passive income machine. Buy dividend aristocrats, reinvest all dividends. Snowball grows exponentially over time.",
-    steps: ["Start with SCHD or VYM (dividend ETFs) for instant diversification", "Add $25-100/month consistently", "Enable DRIP (dividend reinvestment)", "After $5K, add individual dividend kings (JNJ, KO, PG, O)", "Goal: dividends cover one bill, then two, then all."] },
+    steps: ["Start with SCHD or VYM (dividend ETFs) for instant diversification", "Add $25-100/month consistently", "Enable DRIP (dividend reinvestment)", "After $5K, add individual dividend kings (JNJ, KO, PG, O)", "Goal: dividends cover one bill, then two, then all."] }
 ];
 
-const dataSources = [
+var dataSources = [
   { name: "SEC EDGAR", url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany", description: "Quarterly hedge fund holdings (45-day delay)", free: true },
   { name: "Capitol Trades", url: "https://www.capitoltrades.com/trades", description: "Congressional stock trading disclosures", free: true },
   { name: "OpenInsider", url: "http://openinsider.com/screener", description: "SEC Form 4 insider buying/selling", free: true },
   { name: "ARK Invest Daily Trades", url: "https://ark-funds.com/ark-fund-daily-trades/", description: "Cathie Wood daily buy/sell disclosure", free: true },
-  { name: "Unusual Whales", url: "https://unusualwhales.com", description: "Options flow and whale alerts", free: false },
+  { name: "Unusual Whales", url: "https://unusualwhales.com", description: "Options flow and whale alerts", free: false }
 ];
 
+// ============ STATE ============
+var state = {
+  budget: 500,
+  activeTab: "trades",
+  openStrategies: {}
+};
+
 // ============ UTILS ============
+function escapeHtml(str) {
+  var div = document.createElement("div");
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
 function scaleTrade(trade, userBudget) {
-  const traderPortfolio = trade.portfolioSize || 1000000000;
-  const tradeAmount = trade.value;
-  const percentOfPortfolio = (tradeAmount / traderPortfolio) * 100;
-  const yourAmount = (percentOfPortfolio / 100) * userBudget;
-  const sharePrice = trade.price || tradeAmount / (trade.shares || 1);
-  const yourShares = Math.floor(yourAmount / sharePrice);
-  const fractionalShares = (yourAmount / sharePrice).toFixed(4);
+  var traderPortfolio = trade.portfolioSize || 1000000000;
+  var tradeAmount = trade.value;
+  var percentOfPortfolio = (tradeAmount / traderPortfolio) * 100;
+  var yourAmount = (percentOfPortfolio / 100) * userBudget;
+  var sharePrice = trade.price || tradeAmount / (trade.shares || 1);
+  var yourShares = Math.floor(yourAmount / sharePrice);
+  var fractionalShares = (yourAmount / sharePrice).toFixed(4);
   return {
     percentOfPortfolio: percentOfPortfolio.toFixed(2),
     yourAmount: yourAmount.toFixed(2),
-    yourShares, fractionalShares,
+    yourShares: yourShares,
+    fractionalShares: fractionalShares,
     sharePrice: sharePrice.toFixed(2),
-    conviction: percentOfPortfolio > 5 ? "HIGH" : percentOfPortfolio > 2 ? "MEDIUM" : "LOW",
+    conviction: percentOfPortfolio > 5 ? "HIGH" : percentOfPortfolio > 2 ? "MEDIUM" : "LOW"
   };
 }
 
 function generateStrategy(trade, userBudget) {
-  const strategies = [];
-  const sharePrice = trade.price || 100;
+  var strategies = [];
+  var sharePrice = trade.price || 100;
   if (userBudget < sharePrice) {
     strategies.push({ type: "Fractional Shares", description: "Buy $" + Math.min(userBudget * 0.05, 50).toFixed(0) + " worth via fractional shares on Fidelity/Robinhood", risk: "low" });
   }
@@ -217,189 +242,199 @@ function formatMoney(num) {
   return "$" + Number(num).toFixed(2);
 }
 
-// ============ COMPONENTS ============
-function TradeCard({ trade, budget }) {
-  const [showStrategies, setShowStrategies] = useState(false);
-  const trader = topTraders.find((t) => t.id === trade.traderId);
-  const scaled = scaleTrade(trade, budget);
-  const strategies = generateStrategy(trade, budget);
+function findTrader(id) {
+  for (var i = 0; i < topTraders.length; i++) {
+    if (topTraders[i].id === id) return topTraders[i];
+  }
+  return null;
+}
+
+// ============ RENDER ============
+function renderTradeCard(trade) {
+  var trader = findTrader(trade.traderId) || { name: "Unknown", fund: "", style: "", source: "" };
+  var scaled = scaleTrade(trade, state.budget);
+  var strategies = generateStrategy(trade, state.budget);
+  var isOpen = !!state.openStrategies[trade.id];
+  var convictionClass = scaled.conviction === "HIGH" ? "green" : (scaled.conviction === "MEDIUM" ? "gold" : "");
+
+  var strategiesHtml = "";
+  if (isOpen) {
+    var items = strategies.map(function (s) {
+      return '<div class="strat-item">' +
+        '<div class="strat-item-row"><strong style="font-size:0.85rem">' + escapeHtml(s.type) + '</strong>' +
+        '<span class="badge-pill risk-' + s.risk + '">' + s.risk + ' risk</span></div>' +
+        '<p>' + escapeHtml(s.description) + '</p></div>';
+    }).join("");
+    strategiesHtml = '<div style="margin-top:12px">' + items + '</div>';
+  }
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <div>
-          <div className="trader-name">{trader ? trader.name : "Unknown"}</div>
-          <div className="trader-meta">{trader.fund} &bull; {trader.style} &bull; {trade.date}</div>
-        </div>
-        <span className={"trade-action " + trade.action.toLowerCase()}>{trade.action}</span>
-      </div>
-
-      <div style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 4 }}>
-        {trade.ticker} <span style={{ color: "#a0a0b0", fontWeight: 400, fontSize: "0.85rem" }}>{trade.company}</span>
-      </div>
-
-      <div className="trade-details">
-        <div className="detail-item"><div className="detail-label">Their Trade</div><div className="detail-value">{formatMoney(trade.value)}</div></div>
-        <div className="detail-item"><div className="detail-label">Share Price</div><div className="detail-value">${trade.price}</div></div>
-        <div className="detail-item"><div className="detail-label">% of Portfolio</div><div className="detail-value blue">{scaled.percentOfPortfolio}%</div></div>
-        <div className="detail-item"><div className="detail-label">Conviction</div>
-          <div className={"detail-value " + (scaled.conviction === "HIGH" ? "green" : scaled.conviction === "MEDIUM" ? "gold" : "")}>{scaled.conviction}</div>
-        </div>
-      </div>
-
-      <div style={{ color: "#a0a0b0", fontSize: "0.85rem", fontStyle: "italic", marginBottom: 12 }}>{trade.rationale}</div>
-
-      <div className="scaled-section">
-        <h4>Scaled to Your ${budget} Budget:</h4>
-        <div className="scaled-grid">
-          <div className="scaled-item"><span>Your Position Size</span><strong style={{ color: "#00d4aa" }}>${scaled.yourAmount}</strong></div>
-          <div className="scaled-item"><span>Whole Shares</span><strong>{scaled.yourShares}</strong></div>
-          <div className="scaled-item"><span>Fractional</span><strong>{scaled.fractionalShares} shares</strong></div>
-          <div className="scaled-item"><span>Same % Allocation</span><strong style={{ color: "#4a90d9" }}>{scaled.percentOfPortfolio}%</strong></div>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 12 }}>
-        <button onClick={() => setShowStrategies(!showStrategies)}
-          style={{ background: "transparent", border: "1px solid #2a2a4a", color: "#ffd700", padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem" }}>
-          {showStrategies ? "Hide" : "Show"} Small-Budget Strategies ({strategies.length})
-        </button>
-        {showStrategies && (
-          <div style={{ marginTop: 12 }}>
-            {strategies.map((s, i) => (
-              <div key={i} style={{ padding: "8px 12px", background: "#1a1a2e", borderRadius: 6, marginBottom: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <strong style={{ fontSize: "0.85rem" }}>{s.type}</strong>
-                  <span className={"risk-badge risk-" + s.risk}>{s.risk} risk</span>
-                </div>
-                <p style={{ color: "#a0a0b0", fontSize: "0.8rem", marginTop: 4 }}>{s.description}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div style={{ marginTop: 8, fontSize: "0.7rem", color: "#6b6b80" }}>Source: {trader.source}</div>
-    </div>
+    '<div class="card">' +
+      '<div class="card-header">' +
+        '<div>' +
+          '<div class="trader-name">' + escapeHtml(trader.name) + '</div>' +
+          '<div class="trader-meta">' + escapeHtml(trader.fund) + ' &bull; ' + escapeHtml(trader.style) + ' &bull; ' + escapeHtml(trade.date) + '</div>' +
+        '</div>' +
+        '<span class="trade-action ' + trade.action.toLowerCase() + '">' + trade.action + '</span>' +
+      '</div>' +
+      '<div style="font-size:1.2rem;font-weight:700;margin-bottom:4px">' + trade.ticker +
+        ' <span style="color:#a0a0b0;font-weight:400;font-size:0.85rem">' + escapeHtml(trade.company) + '</span></div>' +
+      '<div class="trade-details">' +
+        '<div class="detail-item"><div class="detail-label">Their Trade</div><div class="detail-value">' + formatMoney(trade.value) + '</div></div>' +
+        '<div class="detail-item"><div class="detail-label">Share Price</div><div class="detail-value">$' + trade.price + '</div></div>' +
+        '<div class="detail-item"><div class="detail-label">% of Portfolio</div><div class="detail-value blue">' + scaled.percentOfPortfolio + '%</div></div>' +
+        '<div class="detail-item"><div class="detail-label">Conviction</div><div class="detail-value ' + convictionClass + '">' + scaled.conviction + '</div></div>' +
+      '</div>' +
+      '<div style="color:#a0a0b0;font-size:0.85rem;font-style:italic;margin-bottom:12px">' + escapeHtml(trade.rationale) + '</div>' +
+      '<div class="scaled-section">' +
+        '<h4>Scaled to Your $' + state.budget + ' Budget:</h4>' +
+        '<div class="scaled-grid">' +
+          '<div class="scaled-item"><span>Your Position Size</span><strong style="color:#00d4aa">$' + scaled.yourAmount + '</strong></div>' +
+          '<div class="scaled-item"><span>Whole Shares</span><strong>' + scaled.yourShares + '</strong></div>' +
+          '<div class="scaled-item"><span>Fractional</span><strong>' + scaled.fractionalShares + ' shares</strong></div>' +
+          '<div class="scaled-item"><span>Same % Allocation</span><strong style="color:#4a90d9">' + scaled.percentOfPortfolio + '%</strong></div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="margin-top:12px">' +
+        '<button class="strat-toggle-btn" data-toggle-strategy="' + trade.id + '">' +
+          (isOpen ? "Hide" : "Show") + ' Small-Budget Strategies (' + strategies.length + ')' +
+        '</button>' +
+        strategiesHtml +
+      '</div>' +
+      '<div style="margin-top:8px;font-size:0.7rem;color:#6b6b80">Source: ' + escapeHtml(trader.source) + '</div>' +
+    '</div>'
   );
 }
 
-function StrategyCard({ strategy, budget }) {
+function renderStrategyCard(strategy) {
+  var stepsHtml = strategy.steps.map(function (s) { return '<li>' + escapeHtml(s) + '</li>'; }).join("");
+  var unlocked = state.budget >= strategy.minBudget;
+  var unlockedHtml = unlocked ?
+    '<div style="margin-top:12px;padding:10px 14px;background:rgba(0,212,170,0.08);border-radius:8px">' +
+    '<span style="font-size:0.8rem;color:#00d4aa">With your $' + state.budget + ' budget, you can start this strategy today.</span></div>' : "";
+
   return (
-    <div className="strategy-card">
-      <h3>{strategy.title}</h3>
-      <span className={"risk-badge risk-" + strategy.risk}>{strategy.risk} risk</span>
-      <span style={{ marginLeft: 8, fontSize: "0.75rem", color: "#6b6b80" }}>Min: ${strategy.minBudget}</span>
-      <p>{strategy.description}</p>
-      <ul>{strategy.steps.map((step, i) => <li key={i}>{step}</li>)}</ul>
-      {budget >= strategy.minBudget && (
-        <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(0,212,170,0.08)", borderRadius: 8 }}>
-          <span style={{ fontSize: "0.8rem", color: "#00d4aa" }}>With your ${budget} budget, you can start this strategy today.</span>
-        </div>
-      )}
-    </div>
+    '<div class="strategy-card">' +
+      '<h3>' + escapeHtml(strategy.title) + '</h3>' +
+      '<span class="risk-badge risk-' + strategy.risk + '">' + strategy.risk + ' risk</span>' +
+      '<span style="margin-left:8px;font-size:0.75rem;color:#6b6b80">Min: $' + strategy.minBudget + '</span>' +
+      '<p>' + escapeHtml(strategy.description) + '</p>' +
+      '<ul>' + stepsHtml + '</ul>' +
+      unlockedHtml +
+    '</div>'
   );
 }
 
-function DataSourcesTab() {
+function renderDataSources() {
+  var rows = dataSources.map(function (source) {
+    return (
+      '<div class="card source-row">' +
+        '<div>' +
+          '<div style="font-weight:700">' + escapeHtml(source.name) + '</div>' +
+          '<div style="color:#a0a0b0;font-size:0.85rem">' + escapeHtml(source.description) + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span class="badge-pill ' + (source.free ? "badge-free" : "badge-paid") + '">' + (source.free ? "FREE" : "PAID") + '</span>' +
+          '<a href="' + source.url + '" target="_blank" rel="noopener noreferrer" style="color:#4a90d9;font-size:0.8rem">Visit &rarr;</a>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join("");
+
   return (
-    <div>
-      <p style={{ color: "#a0a0b0", marginBottom: 16, fontSize: "0.85rem" }}>
-        Free and public data sources this app is built around. All trader data comes from legally required
-        public disclosures — no insider info, no paid services needed.
-      </p>
-      {dataSources.map((source, i) => (
-        <div key={i} className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <div>
-            <div style={{ fontWeight: 700 }}>{source.name}</div>
-            <div style={{ color: "#a0a0b0", fontSize: "0.85rem" }}>{source.description}</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ padding: "2px 8px", borderRadius: 12, fontSize: "0.7rem", fontWeight: 600,
-              background: source.free ? "rgba(0,212,170,0.15)" : "rgba(255,71,87,0.15)",
-              color: source.free ? "#00d4aa" : "#ff4757" }}>
-              {source.free ? "FREE" : "PAID"}
-            </span>
-            <a href={source.url} target="_blank" rel="noopener noreferrer" style={{ color: "#4a90d9", fontSize: "0.8rem" }}>Visit &rarr;</a>
-          </div>
-        </div>
-      ))}
-      <div className="card" style={{ marginTop: 24, borderColor: "#ffd700" }}>
-        <h3 style={{ color: "#ffd700", marginBottom: 8 }}>How This App Gets Data</h3>
-        <ul style={{ paddingLeft: 20, color: "#a0a0b0", fontSize: "0.85rem" }}>
-          <li><strong>SEC 13F Filings</strong> — Every fund managing $100M+ must disclose holdings quarterly. 45-day delay.</li>
-          <li><strong>Congressional STOCK Act</strong> — Members of Congress must disclose trades within 45 days.</li>
-          <li><strong>SEC Form 4</strong> — Corporate insiders must report trades within 2 business days.</li>
-          <li><strong>ARK Invest</strong> — Voluntarily publishes all trades daily via email/website.</li>
-          <li><strong>Options Flow</strong> — Large unusual options bets are visible on public exchanges in real-time.</li>
-        </ul>
-      </div>
-      <div className="card" style={{ marginTop: 16 }}>
-        <h3 style={{ color: "#4a90d9", marginBottom: 8 }}>Current Version</h3>
-        <p style={{ color: "#a0a0b0", fontSize: "0.85rem" }}>
-          This is a standalone demo build with sample trade data illustrating the concept. It runs entirely
-          in your browser — no server, no install, no Node.js required. Just open this HTML file on any device.
-        </p>
-      </div>
-    </div>
+    '<div>' +
+      '<p class="intro-text">Free and public data sources this app is built around. All trader data comes from legally required public disclosures — no insider info, no paid services needed.</p>' +
+      rows +
+      '<div class="card" style="margin-top:24px;border-color:#ffd700">' +
+        '<h3 style="color:#ffd700;margin-bottom:8px">How This App Gets Data</h3>' +
+        '<ul style="padding-left:20px;color:#a0a0b0;font-size:0.85rem">' +
+          '<li><strong>SEC 13F Filings</strong> — Every fund managing $100M+ must disclose holdings quarterly. 45-day delay.</li>' +
+          '<li><strong>Congressional STOCK Act</strong> — Members of Congress must disclose trades within 45 days.</li>' +
+          '<li><strong>SEC Form 4</strong> — Corporate insiders must report trades within 2 business days.</li>' +
+          '<li><strong>ARK Invest</strong> — Voluntarily publishes all trades daily via email/website.</li>' +
+          '<li><strong>Options Flow</strong> — Large unusual options bets are visible on public exchanges in real-time.</li>' +
+        '</ul>' +
+      '</div>' +
+      '<div class="card" style="margin-top:16px">' +
+        '<h3 style="color:#4a90d9;margin-bottom:8px">Current Version</h3>' +
+        '<p style="color:#a0a0b0;font-size:0.85rem">This is a standalone demo build with sample trade data illustrating the concept. It runs entirely in your browser — no server, no install, no Node.js, no external scripts required. Just open this HTML file on any device.</p>' +
+      '</div>' +
+    '</div>'
   );
 }
 
-function App() {
-  const [budget, setBudget] = useState(500);
-  const [activeTab, setActiveTab] = useState("trades");
-  const tabs = [
+function render() {
+  var root = document.getElementById("root");
+  var tabs = [
     { id: "trades", label: "Live Trades" },
     { id: "strategies", label: "Small Stack Plays" },
-    { id: "sources", label: "Data Sources" },
+    { id: "sources", label: "Data Sources" }
   ];
 
-  return (
-    <div className="app">
-      <header className="header">
-        <h1>TradeScale</h1>
-        <div className="budget-input">
-          <label>My Budget:</label>
-          <span style={{ color: "#ffd700", fontSize: "1.1rem" }}>$</span>
-          <input type="number" value={budget} onChange={(e) => setBudget(Number(e.target.value) || 0)} min="0" step="50" />
-        </div>
-      </header>
+  var tabsHtml = tabs.map(function (tab) {
+    return '<button class="tab' + (state.activeTab === tab.id ? " active" : "") + '" data-tab="' + tab.id + '">' + tab.label + '</button>';
+  }).join("");
 
-      <div className="tabs">
-        {tabs.map((tab) => (
-          <button key={tab.id} className={"tab" + (activeTab === tab.id ? " active" : "")} onClick={() => setActiveTab(tab.id)}>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+  var bodyHtml = "";
+  if (state.activeTab === "trades") {
+    bodyHtml = '<p class="intro-text">Recent trades from top fund managers, congress members, and notable investors. Each trade is scaled to your ' + formatMoney(state.budget) + ' budget.</p>' +
+      recentTrades.map(renderTradeCard).join("");
+  } else if (state.activeTab === "strategies") {
+    var filtered = smallStackStrategies.filter(function (s) { return state.budget >= s.minBudget; });
+    bodyHtml = '<p class="intro-text">Battle-tested strategies for accounts under $5K. Real ways to grow small money using the same principles as billion-dollar funds.</p>' +
+      filtered.map(renderStrategyCard).join("");
+  } else if (state.activeTab === "sources") {
+    bodyHtml = renderDataSources();
+  }
 
-      {activeTab === "trades" && (
-        <div>
-          <p style={{ color: "#a0a0b0", marginBottom: 16, fontSize: "0.85rem" }}>
-            Recent trades from top fund managers, congress members, and notable investors. Each trade is scaled to your {formatMoney(budget)} budget.
-          </p>
-          {recentTrades.map((trade) => <TradeCard key={trade.id} trade={trade} budget={budget} />)}
-        </div>
-      )}
+  root.innerHTML =
+    '<div class="app">' +
+      '<header class="header">' +
+        '<h1>TradeScale</h1>' +
+        '<div class="budget-input">' +
+          '<label>My Budget:</label>' +
+          '<span style="color:#ffd700;font-size:1.1rem">$</span>' +
+          '<input type="number" id="budget-input" value="' + state.budget + '" min="0" step="50" />' +
+        '</div>' +
+      '</header>' +
+      '<div class="tabs">' + tabsHtml + '</div>' +
+      '<div id="tab-body">' + bodyHtml + '</div>' +
+    '</div>';
 
-      {activeTab === "strategies" && (
-        <div>
-          <p style={{ color: "#a0a0b0", marginBottom: 16, fontSize: "0.85rem" }}>
-            Battle-tested strategies for accounts under $5K. Real ways to grow small money using the same principles as billion-dollar funds.
-          </p>
-          {smallStackStrategies.filter((s) => budget >= s.minBudget).map((strategy) => (
-            <StrategyCard key={strategy.id} strategy={strategy} budget={budget} />
-          ))}
-        </div>
-      )}
-
-      {activeTab === "sources" && <DataSourcesTab />}
-    </div>
-  );
+  attachEvents();
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+function attachEvents() {
+  var budgetInput = document.getElementById("budget-input");
+  if (budgetInput) {
+    budgetInput.addEventListener("input", function (e) {
+      var val = Number(e.target.value);
+      state.budget = isNaN(val) ? 0 : val;
+      render();
+      var el = document.getElementById("budget-input");
+      if (el) { el.focus(); el.setSelectionRange(String(state.budget).length, String(state.budget).length); }
+    });
+  }
+
+  var tabButtons = document.querySelectorAll("[data-tab]");
+  for (var i = 0; i < tabButtons.length; i++) {
+    tabButtons[i].addEventListener("click", function (e) {
+      state.activeTab = e.currentTarget.getAttribute("data-tab");
+      render();
+    });
+  }
+
+  var toggleButtons = document.querySelectorAll("[data-toggle-strategy]");
+  for (var j = 0; j < toggleButtons.length; j++) {
+    toggleButtons[j].addEventListener("click", function (e) {
+      var id = e.currentTarget.getAttribute("data-toggle-strategy");
+      state.openStrategies[id] = !state.openStrategies[id];
+      render();
+    });
+  }
+}
+
+render();
 </script>
 </body>
 </html>
