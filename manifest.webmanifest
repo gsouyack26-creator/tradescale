@@ -1,0 +1,15 @@
+{
+  "name": "TradeScale — Track Top Traders",
+  "short_name": "TradeScale",
+  "description": "Track top traders' moves, scaled to your budget, with paper trading.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f1a",
+  "theme_color": "#0f0f1a",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

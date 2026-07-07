@@ -20,6 +20,16 @@ FUNDS = {
 def fetch(url):
     return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30).read()
 
+def quote(symbol):
+    """Current market price for a symbol via Yahoo (no key). None on failure."""
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
+    try:
+        d = json.loads(fetch(url))
+        m = d["chart"]["result"][0]["meta"]
+        return m.get("regularMarketPrice")
+    except Exception:
+        return None
+
 def load_holdings(fund):
     """Return {ticker: {price, weight}} and total AUM from official CSV."""
     url = f"https://assets.ark-funds.com/fund-documents/funds-etf-csv/{FUND_CSV[fund]}"
@@ -115,8 +125,20 @@ def main():
     all_trades.sort(key=lambda x: x["date"], reverse=True)
     all_trades = all_trades[:60]
 
+    # current market prices for every traded ticker (for live quotes + paper-trade P&L)
+    print("\nFetching current quotes...")
+    prices = {}
+    for t in all_trades:
+        tk = t["ticker"]
+        if tk and tk not in prices:
+            q = quote(tk)
+            if q is not None:
+                prices[tk] = round(q, 2)
+    print(f"  got {len(prices)} live quotes")
+
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "prices": prices,
         "latest_trade_date": latest_date,
         "source": "ARK Invest daily disclosures (arkfunds.io + ark-funds.com)",
         "traders": traders,

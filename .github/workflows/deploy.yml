@@ -23,6 +23,10 @@ jobs:
         run: |
           mkdir -p _site/data
           cp tradescale.html _site/index.html
+          cp manifest.webmanifest _site/manifest.webmanifest
+          cp sw.js _site/sw.js
+          cp icon-192.png _site/icon-192.png
+          cp icon-512.png _site/icon-512.png
           if [ -f data/trades.json ]; then cp data/trades.json _site/data/trades.json; fi
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#1a1a2e" />
+<meta name="theme-color" content="#0f0f1a" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<link rel="icon" type="image/png" href="./icon-192.png" />
 <title>TradeScale — Track Top Traders</title>
 <style>
 :root {
@@ -116,6 +119,36 @@ footer a{color:var(--accent-blue);text-decoration:none;}
   .trade-details{grid-template-columns:1fr 1fr;}
   .card{padding:16px;}
 }
+
+.pf-count{background:var(--accent-green);color:#0f0f1a;font-size:0.7rem;font-weight:700;
+  border-radius:10px;padding:1px 7px;margin-left:6px;}
+.quote-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:8px 0 4px;
+  padding:8px 12px;background:rgba(74,144,217,0.08);border-radius:8px;font-size:0.85rem;}
+.quote-row .ql{color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;margin-right:4px;}
+.pnl-pos{color:var(--accent-green);font-weight:700;}
+.pnl-neg{color:var(--accent-red);font-weight:700;}
+.paper-btn{background:rgba(0,212,170,0.12);border:1px solid var(--accent-green);
+  color:var(--accent-green);padding:8px 16px;border-radius:8px;cursor:pointer;
+  font-size:0.82rem;font-weight:600;margin-top:12px;margin-right:8px;transition:all 0.15s;}
+.paper-btn:hover{background:var(--accent-green);color:#0f0f1a;}
+.paper-btn.added{background:var(--accent-green);color:#0f0f1a;}
+.pf-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;
+  margin-bottom:20px;}
+.pf-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;text-align:center;}
+.pf-stat .v{font-size:1.4rem;font-weight:700;}
+.pf-stat .l{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;}
+.pos-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;margin-bottom:12px;}
+.pos-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin-top:12px;}
+.pos-grid .pl{font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;}
+.pos-grid .pv{font-size:0.95rem;font-weight:600;margin-top:2px;}
+.close-btn{background:transparent;border:1px solid var(--accent-red);color:var(--accent-red);
+  padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.75rem;}
+.close-btn:hover{background:var(--accent-red);color:white;}
+.dir-long{background:rgba(0,212,170,0.15);color:var(--accent-green);}
+.dir-short{background:rgba(255,71,87,0.15);color:var(--accent-red);}
 </style>
 </head>
 <body>
@@ -152,6 +185,7 @@ footer a{color:var(--accent-blue);text-decoration:none;}
   <div class="tabs">
     <button class="tab active" data-tab="trades">Live Trades</button>
     <button class="tab" data-tab="strategies">Small Stack Plays</button>
+    <button class="tab" data-tab="portfolio">My Portfolio<span class="pf-count" id="pf-count" style="display:none">0</span></button>
     <button class="tab" data-tab="sources">Data Sources</button>
   </div>
   <div id="tab-body"></div>
@@ -218,10 +252,12 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     return {budget:s.budget||500,tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",open:s.open||{}};
-  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",open:{}};}
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",open:s.open||{},paper:s.paper||[]};
+  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",open:{},paper:[]};}
 }
 var S=loadState();
+var PRICES={};
+var PRICE_INFO="";
 function save(){try{localStorage.setItem("ts_state",JSON.stringify(S));}catch(e){}}
 
 // ---- DISCLAIMER ----
@@ -270,6 +306,63 @@ function getTips(t,b){
   if(b>=200&&t.action==="BUY")r.push({type:"Bull Call Spread",desc:"Buy ATM call, sell OTM call same expiry. Caps upside but cuts entry cost 50-70%.",risk:"medium"});
   r.push({type:"Dollar-Cost Average",desc:"Split into 4 weekly buys of $"+Math.min(b*.05,25).toFixed(0)+" to reduce timing risk",risk:"low"});
   return r;
+}
+
+// ---- LIVE QUOTES + PAPER TRADING ----
+function curPrice(ticker){var p=PRICES[ticker];return(typeof p==="number"&&p>0)?p:null;}
+
+function quoteRow(t){
+  var cur=curPrice(t.ticker);
+  if(cur===null)return"";
+  var entry=t.price||0;
+  if(!entry)return"";
+  var chg=((cur-entry)/entry)*100;
+  var cls=chg>=0?"pnl-pos":"pnl-neg";
+  var sign=chg>=0?"+":"";
+  return'<div class="quote-row">'+
+    '<div><span class="ql">Entry</span>$'+entry.toFixed(2)+'</div>'+
+    '<div><span class="ql">Now</span>$'+cur.toFixed(2)+'</div>'+
+    '<div><span class="ql">Since Entry</span><span class="'+cls+'">'+sign+chg.toFixed(1)+'%</span></div>'+
+  '</div>';
+}
+
+function pfCount(){return S.paper.length;}
+function updatePfBadge(){
+  var el=id("pf-count");if(!el)return;
+  var n=pfCount();
+  if(n>0){el.style.display="inline-block";el.textContent=n;}else{el.style.display="none";}
+}
+
+function addPaper(tradeId){
+  var t=null;for(var i=0;i<trades.length;i++)if(String(trades[i].id)===String(tradeId))t=trades[i];
+  if(!t)return;
+  var sc=scale(t,S.budget);
+  var shares=parseFloat(sc.frac)||0;
+  var cost=parseFloat(sc.amt)||0;
+  if(shares<=0||cost<=0){shares=(S.budget/(t.price||1));cost=S.budget;}
+  var tr=trader(t.tid)||{};
+  S.paper.push({
+    pid:Date.now()+"_"+Math.floor(Math.random()*1000),
+    ticker:t.ticker,co:t.co,dir:t.action==="BUY"?"LONG":"SHORT",
+    entry:t.price,shares:shares,cost:cost,
+    date:new Date().toISOString().slice(0,10),
+    who:tr.name||"",fund:tr.fund||""
+  });
+  save();updatePfBadge();
+}
+
+function removePaper(pid){
+  S.paper=S.paper.filter(function(x){return x.pid!==pid;});
+  save();updatePfBadge();
+}
+
+function posPnl(pos){
+  var cur=curPrice(pos.ticker);
+  if(cur===null)cur=pos.entry;
+  var pnl=pos.dir==="LONG"?(cur-pos.entry)*pos.shares:(pos.entry-cur)*pos.shares;
+  var val=pos.cost+pnl;
+  var pct=pos.cost>0?(pnl/pos.cost)*100:0;
+  return{cur:cur,pnl:pnl,val:val,pct:pct,noQuote:curPrice(pos.ticker)===null};
 }
 
 // ---- FILTER/SORT ----
@@ -335,6 +428,8 @@ function tradeCard(t){
         '<div class="si"><span>Fractional</span><strong>'+sc.frac+'</strong></div>'+
         '<div class="si"><span>Allocation %</span><strong style="color:#4a90d9">'+sc.pct+'%</strong></div>'+
       '</div></div>'+
+    quoteRow(t)+
+    '<button class="paper-btn" data-paper="'+t.id+'">+ Paper Trade This ('+ (t.action==="BUY"?"Long":"Short") +')</button>'+
     '<button class="tog-btn" data-tog="'+t.id+'">'+(open?"Hide":"Show")+' Budget Strategies ('+tips.length+')</button>'+
     tipHtml+
     '<div style="margin-top:8px;font-size:.7rem;color:#6b6b80">Source: '+esc(tr.src||"")+'</div>'+
@@ -414,6 +509,60 @@ function renderSources(){
     '</div>';
 }
 
+function renderPortfolio(){
+  var body=id("tab-body");
+  if(!S.paper.length){
+    body.innerHTML='<div class="empty"><div>&#128188;</div>'+
+      '<p>No paper trades yet.</p>'+
+      '<p style="margin-top:8px;font-size:0.82rem">Go to <strong>Live Trades</strong> and tap <span style="color:var(--accent-green)">+ Paper Trade This</span> on any trade to copy it at your $'+S.budget+' budget. Track hypothetical P&amp;L here &mdash; no real money.</p></div>';
+    return;
+  }
+  var totalCost=0,totalVal=0,totalPnl=0,wins=0;
+  var cards=S.paper.map(function(pos){
+    var r=posPnl(pos);
+    totalCost+=pos.cost;totalVal+=r.val;totalPnl+=r.pnl;
+    if(r.pnl>=0)wins++;
+    var cls=r.pnl>=0?"pnl-pos":"pnl-neg";
+    var sign=r.pnl>=0?"+":"";
+    var dirCls=pos.dir==="LONG"?"dir-long":"dir-short";
+    return'<div class="pos-card">'+
+      '<div class="pos-head"><div>'+
+        '<strong style="font-size:1.05rem">'+esc(pos.ticker)+'</strong> '+
+        '<span class="bp '+dirCls+'">'+pos.dir+'</span> '+
+        '<span style="color:var(--text-muted);font-size:0.78rem">'+esc(pos.co)+'</span>'+
+        (pos.who?'<div style="color:var(--text-muted);font-size:0.72rem;margin-top:2px">Copied from '+esc(pos.who)+' &bull; '+esc(pos.fund)+' &bull; '+esc(pos.date)+'</div>':'')+
+      '</div><button class="close-btn" data-close="'+pos.pid+'">Close</button></div>'+
+      '<div class="pos-grid">'+
+        '<div><div class="pl">Shares</div><div class="pv">'+pos.shares.toFixed(4)+'</div></div>'+
+        '<div><div class="pl">Entry</div><div class="pv">$'+pos.entry.toFixed(2)+'</div></div>'+
+        '<div><div class="pl">Current</div><div class="pv">$'+r.cur.toFixed(2)+(r.noQuote?'*':'')+'</div></div>'+
+        '<div><div class="pl">Cost</div><div class="pv">$'+pos.cost.toFixed(2)+'</div></div>'+
+        '<div><div class="pl">Value</div><div class="pv">$'+r.val.toFixed(2)+'</div></div>'+
+        '<div><div class="pl">P&amp;L</div><div class="pv '+cls+'">'+sign+'$'+r.pnl.toFixed(2)+' ('+sign+r.pct.toFixed(1)+'%)</div></div>'+
+      '</div>'+
+      (r.noQuote?'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px">* no live quote &mdash; using entry price</div>':'')+
+    '</div>';
+  }).join("");
+  var totPct=totalCost>0?(totalPnl/totalCost)*100:0;
+  var tcls=totalPnl>=0?"pnl-pos":"pnl-neg";
+  var tsign=totalPnl>=0?"+":"";
+  var summary='<div class="pf-summary">'+
+    '<div class="pf-stat"><div class="v">$'+totalCost.toFixed(0)+'</div><div class="l">Invested</div></div>'+
+    '<div class="pf-stat"><div class="v">$'+totalVal.toFixed(0)+'</div><div class="l">Current Value</div></div>'+
+    '<div class="pf-stat"><div class="v '+tcls+'">'+tsign+'$'+totalPnl.toFixed(0)+'</div><div class="l">Total P&amp;L</div></div>'+
+    '<div class="pf-stat"><div class="v '+tcls+'">'+tsign+totPct.toFixed(1)+'%</div><div class="l">Return</div></div>'+
+    '<div class="pf-stat"><div class="v">'+wins+'/'+S.paper.length+'</div><div class="l">Winners</div></div>'+
+  '</div>';
+  body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
+    summary+cards+
+    '<div style="margin-top:16px"><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
+  var clr=id("clear-all");
+  if(clr)clr.addEventListener("click",function(){if(confirm("Clear all paper positions?")){S.paper=[];save();render();}});
+  document.querySelectorAll("[data-close]").forEach(function(b){
+    b.addEventListener("click",function(e){removePaper(e.currentTarget.getAttribute("data-close"));render();});
+  });
+}
+
 // ---- MAIN RENDER ----
 function render(){
   banner();
@@ -421,7 +570,9 @@ function render(){
   id("budget-input").value=S.budget;
   if(S.tab==="trades")renderTrades();
   else if(S.tab==="strategies")renderStrategies();
+  else if(S.tab==="portfolio")renderPortfolio();
   else renderSources();
+  updatePfBadge();
   save();
 }
 
@@ -438,6 +589,15 @@ function bindBody(){
   });
   document.querySelectorAll("[data-tog]").forEach(function(b){
     b.addEventListener("click",function(e){var k=e.currentTarget.getAttribute("data-tog");S.open[k]=!S.open[k];renderTrades();save();});
+  });
+  document.querySelectorAll("[data-paper]").forEach(function(b){
+    b.addEventListener("click",function(e){
+      var btn=e.currentTarget;
+      addPaper(btn.getAttribute("data-paper"));
+      btn.classList.add("added");
+      btn.textContent="\u2713 Added to Portfolio";
+      setTimeout(function(){updatePfBadge();},50);
+    });
   });
 }
 
@@ -461,6 +621,7 @@ function loadLiveData(){
     if(d&&d.traders&&d.traders.length&&d.trades&&d.trades.length){
       topTraders=d.traders;
       trades=d.trades;
+      PRICES=d.prices||{};
       // reset any stale open-strategy keys and trader filter
       S.open={};
       if(S.trader!=="all"){var ok=false;for(var i=0;i<topTraders.length;i++)if(String(topTraders[i].id)===S.trader)ok=true;if(!ok)S.trader="all";}
@@ -481,6 +642,13 @@ function loadLiveData(){
 initDisc();
 render();
 loadLiveData();
+
+// ---- PWA: register service worker (only over http/https, not file://) ----
+if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("./sw.js").catch(function(){});
+  });
+}
 </script>
 </body>
 </html>

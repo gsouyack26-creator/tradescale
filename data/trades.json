@@ -1,5 +1,21 @@
 {
-  "generated_at": "2026-07-07T21:48:40.592625+00:00",
+  "generated_at": "2026-07-07T21:57:25.415205+00:00",
+  "prices": {
+    "AMD": 516.11,
+    "KTOS": 50.34,
+    "XE": 16.54,
+    "ROKU": 141.21,
+    "BLSH": 25.77,
+    "TWST": 91.03,
+    "BABA": 98.14,
+    "RXRX": 3.84,
+    "GENB": 16.22,
+    "ALMR": 25.23,
+    "ABSI": 11.33,
+    "SRTA": 5.24,
+    "IRDM": 51.09,
+    "SPCX": 149.47
+  },
   "latest_trade_date": "2026-07-06",
   "source": "ARK Invest daily disclosures (arkfunds.io + ark-funds.com)",
   "traders": [
