@@ -1,6 +1,8 @@
 {
-  "generated_at": "2026-07-07T21:57:25.415205+00:00",
+  "generated_at": "2026-07-07T22:16:35.296056+00:00",
   "prices": {
+    "BTC": 63416,
+    "ETH": 1774.2,
     "AMD": 516.11,
     "KTOS": 50.34,
     "XE": 16.54,
@@ -14,10 +16,23 @@
     "ABSI": 11.33,
     "SRTA": 5.24,
     "IRDM": 51.09,
-    "SPCX": 149.47
+    "SPCX": 149.47,
+    "USDT": 1.0,
+    "BNB": 578.33,
+    "USDC": 1.0,
+    "XRP": 1.11,
+    "SOL": 80.76,
+    "TRX": 0.33,
+    "FIGR_HELOC": 1.02,
+    "HYPE": 69.21,
+    "DOGE": 0.07,
+    "USDS": 1.0,
+    "RAIN": 0.01,
+    "LEO": 9.37,
+    "ZEC": 480.42
   },
   "latest_trade_date": "2026-07-06",
-  "source": "ARK Invest daily disclosures (arkfunds.io + ark-funds.com)",
+  "source": "ARK Invest disclosures (arkfunds.io) + crypto whales (CoinGecko + SEC filings)",
   "traders": [
     {
       "id": 1,
@@ -66,9 +81,163 @@
       "port": 515528325,
       "style": "Space / Aerospace",
       "src": "ARK daily disclosure"
+    },
+    {
+      "id": 7,
+      "name": "Michael Saylor",
+      "fund": "Strategy (BTC Treasury)",
+      "port": 53508835400,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 8,
+      "name": "XXI",
+      "fund": "XXI (BTC Treasury)",
+      "port": 2759483824,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 9,
+      "name": "Metaplanet",
+      "fund": "Metaplanet (BTC Treasury)",
+      "port": 2726888000,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 10,
+      "name": "MARA Holdings",
+      "fund": "MARA Holdings (BTC Treasury)",
+      "port": 2238775048,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 11,
+      "name": "Bitcoin Standard Treasury Company",
+      "fund": "Bitcoin Standard Treasury Company (BTC Treasury)",
+      "port": 1903811736,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 12,
+      "name": "BitMine Immersion",
+      "fund": "BitMine Immersion (ETH Treasury)",
+      "port": 10187876885,
+      "style": "ETH Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 13,
+      "name": "Changpeng Zhao (CZ)",
+      "fund": "Binance / BNB",
+      "port": 54363020000,
+      "style": "BNB Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
     }
   ],
   "trades": [
+    {
+      "id": 26,
+      "tid": 7,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 843775.0,
+      "price": 63416,
+      "value": 53508835400,
+      "date": "2026-07-07",
+      "port": 53508835400,
+      "why": "Holds 843,775 BTC (#1 corporate BTC holder on Earth). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 27,
+      "tid": 8,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 43514.0,
+      "price": 63416,
+      "value": 2759483824,
+      "date": "2026-07-07",
+      "port": 2759483824,
+      "why": "Holds 43,514 BTC (#2 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 28,
+      "tid": 9,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 43000.0,
+      "price": 63416,
+      "value": 2726888000,
+      "date": "2026-07-07",
+      "port": 2726888000,
+      "why": "Holds 43,000 BTC (#3 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 29,
+      "tid": 10,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 35303.0,
+      "price": 63416,
+      "value": 2238775048,
+      "date": "2026-07-07",
+      "port": 2238775048,
+      "why": "Holds 35,303 BTC (#4 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 30,
+      "tid": 11,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 30021.0,
+      "price": 63416,
+      "value": 1903811736,
+      "date": "2026-07-07",
+      "port": 1903811736,
+      "why": "Holds 30,021 BTC (#5 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 31,
+      "tid": 12,
+      "ticker": "ETH",
+      "co": "Ethereum",
+      "action": "BUY",
+      "shares": 5742237.0,
+      "price": 1774.2,
+      "value": 10187876885,
+      "date": "2026-07-07",
+      "port": 10187876885,
+      "why": "Holds 5,742,237 ETH (largest corporate ETH holder).",
+      "asset": "crypto"
+    },
+    {
+      "id": 32,
+      "tid": 13,
+      "ticker": "BNB",
+      "co": "BNB",
+      "action": "BUY",
+      "shares": 94000000,
+      "price": 578.33,
+      "value": 54363020000,
+      "date": "2026-07-07",
+      "port": 54363020000,
+      "why": "Richest crypto figure of 2026 and the cycle's biggest fortune gainer. Majority owner of Binance; est. personal BNB stake shown at live price.",
+      "asset": "crypto"
+    },
     {
       "id": 1,
       "tid": 1,

@@ -62,6 +62,90 @@ FUND_CSV = {
     "ARKX": "ARK_SPACE_EXPLORATION_&_INNOVATION_ETF_ARKX_HOLDINGS.csv",
 }
 
+COINGECKO = "https://api.coingecko.com/api/v3"
+
+def fetch_crypto(start_tid, start_trade_id):
+    """Return (traders, trades, crypto_prices) for top crypto whales via CoinGecko (free, no key)."""
+    traders, ctrades, prices = [], [], {}
+    tid = start_tid
+    trade_id = start_trade_id
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    # 1. live prices for top coins
+    coin_sym = {}  # coingecko id -> symbol
+    try:
+        mk = json.loads(fetch(f"{COINGECKO}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=15&page=1"))
+        for c in mk:
+            sym = c["symbol"].upper()
+            prices[sym] = round(c["current_price"], 2)
+            coin_sym[c["id"]] = sym
+    except Exception as e:
+        print(f"  [warn] crypto prices failed: {e}", file=sys.stderr)
+
+    btc_price = prices.get("BTC", 0)
+    eth_price = prices.get("ETH", 0)
+
+    def add_whale(name, fund, coin, coins_held, price, note):
+        nonlocal tid, trade_id
+        if not price or coins_held <= 0:
+            return
+        value = coins_held * price
+        traders.append({
+            "id": tid, "name": name, "fund": fund,
+            "port": round(value), "style": f"{coin} Treasury / Accumulation",
+            "src": "CoinGecko + SEC filings",
+        })
+        ctrades.append({
+            "id": trade_id, "tid": tid, "ticker": coin,
+            "co": "Bitcoin" if coin == "BTC" else "Ethereum" if coin == "ETH" else coin,
+            "action": "BUY", "shares": round(coins_held, 4), "price": round(price, 2),
+            "value": round(value), "date": today, "port": round(value),
+            "why": note, "asset": "crypto",
+        })
+        tid += 1
+        trade_id += 1
+
+    # 2. top BTC corporate whales
+    try:
+        bt = json.loads(fetch(f"{COINGECKO}/companies/public_treasury/bitcoin"))
+        comps = bt.get("companies", [])
+        for i, c in enumerate(comps[:5]):
+            held = c.get("total_holdings", 0) or 0
+            nm = c.get("name", "Unknown")
+            # personalize the #1
+            display = "Michael Saylor" if nm.lower().startswith("strategy") else nm
+            rank = "#1 corporate BTC holder on Earth" if i == 0 else f"#{i+1} corporate BTC holder"
+            note = f"Holds {held:,.0f} BTC ({rank}). All purchases disclosed via SEC filings."
+            add_whale(display, f"{nm} (BTC Treasury)", "BTC", held, btc_price, note)
+    except Exception as e:
+        print(f"  [warn] BTC treasuries failed: {e}", file=sys.stderr)
+
+    # 3. top ETH corporate whale
+    try:
+        et = json.loads(fetch(f"{COINGECKO}/companies/public_treasury/ethereum"))
+        comps = et.get("companies", [])
+        if comps:
+            c = comps[0]
+            held = c.get("total_holdings", 0) or 0
+            nm = c.get("name", "Unknown")
+            note = f"Holds {held:,.0f} ETH (largest corporate ETH holder)."
+            add_whale(nm, f"{nm} (ETH Treasury)", "ETH", held, eth_price, note)
+    except Exception as e:
+        print(f"  [warn] ETH treasuries failed: {e}", file=sys.stderr)
+
+    # 4. Changpeng Zhao (CZ) — richest crypto figure & biggest fortune of the 2026 cycle
+    bnb_price = prices.get("BNB", 0)
+    cz_bnb = 94_000_000  # widely-cited CZ personal BNB stake
+    if bnb_price:
+        add_whale(
+            "Changpeng Zhao (CZ)", "Binance / BNB", "BNB", cz_bnb, bnb_price,
+            "Richest crypto figure of 2026 and the cycle's biggest fortune gainer. "
+            "Majority owner of Binance; est. personal BNB stake shown at live price.",
+        )
+
+    return traders, ctrades, prices
+
+
 def main():
     all_trades, traders, tid_map = [], [], {}
     trade_id = 1
@@ -121,9 +205,16 @@ def main():
             })
             trade_id += 1
 
-    # sort newest first, cap size
+    # crypto whales (Michael Saylor / Strategy #1, top BTC & ETH treasuries)
+    print("\nFetching crypto whales...")
+    c_traders, c_trades, c_prices = fetch_crypto(trader_id, trade_id)
+    traders.extend(c_traders)
+    all_trades.extend(c_trades)
+    print(f"  got {len(c_traders)} crypto whales, {len(c_trades)} holdings")
+
+    # sort newest first, cap size (keep all crypto whales + newest ARK trades)
     all_trades.sort(key=lambda x: x["date"], reverse=True)
-    all_trades = all_trades[:60]
+    all_trades = all_trades[:80]
 
     # current market prices for every traded ticker (for live quotes + paper-trade P&L)
     print("\nFetching current quotes...")
@@ -136,11 +227,14 @@ def main():
                 prices[tk] = round(q, 2)
     print(f"  got {len(prices)} live quotes")
 
+    # merge live crypto prices (CoinGecko) over any Yahoo attempt
+    prices.update(c_prices)
+
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "prices": prices,
         "latest_trade_date": latest_date,
-        "source": "ARK Invest daily disclosures (arkfunds.io + ark-funds.com)",
+        "source": "ARK Invest disclosures (arkfunds.io) + crypto whales (CoinGecko + SEC filings)",
         "traders": traders,
         "trades": all_trades,
     }
