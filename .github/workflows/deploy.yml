@@ -21,8 +21,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Assemble site
         run: |
-          mkdir -p _site
+          mkdir -p _site/data
           cp tradescale.html _site/index.html
+          if [ -f data/trades.json ]; then cp data/trades.json _site/data/trades.json; fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./_site

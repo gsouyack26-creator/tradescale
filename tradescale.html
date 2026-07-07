@@ -140,6 +140,7 @@ footer a{color:var(--accent-blue);text-decoration:none;}
     <div>
       <h1>TradeScale</h1>
       <div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px">Publicly disclosed trades, scaled to your budget</div>
+      <div id="data-status" style="font-size:0.72rem;margin-top:4px;color:var(--text-muted)">&#9203; Loading live data...</div>
     </div>
     <div class="budget-input">
       <label>My Budget:</label>
@@ -448,9 +449,38 @@ id("budget-input").addEventListener("input",function(e){
   S.budget=Number(e.target.value)||0;render();id("budget-input").focus();
 });
 
+// ---- LIVE DATA ----
+function setStatus(html){var el=id("data-status");if(el)el.innerHTML=html;}
+
+function loadLiveData(){
+  var url="./data/trades.json?t="+Date.now();
+  fetch(url).then(function(r){
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(d){
+    if(d&&d.traders&&d.traders.length&&d.trades&&d.trades.length){
+      topTraders=d.traders;
+      trades=d.trades;
+      // reset any stale open-strategy keys and trader filter
+      S.open={};
+      if(S.trader!=="all"){var ok=false;for(var i=0;i<topTraders.length;i++)if(String(topTraders[i].id)===S.trader)ok=true;if(!ok)S.trader="all";}
+      render();
+      var when=d.latest_trade_date||"recent";
+      var gen=d.generated_at?new Date(d.generated_at):null;
+      var genStr=gen?gen.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+gen.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"";
+      setStatus('<span style="color:var(--accent-green)">&#9679; LIVE</span> &mdash; '+topTraders.length+' ARK funds &bull; latest trade '+when+' &bull; synced '+genStr);
+    }else{
+      throw new Error("empty data");
+    }
+  }).catch(function(e){
+    setStatus('<span style="color:var(--accent-gold)">&#9679; SAMPLE DATA</span> &mdash; live feed unavailable (offline or first run). Showing demo trades.');
+  });
+}
+
 // ---- BOOT ----
 initDisc();
 render();
+loadLiveData();
 </script>
 </body>
 </html>
