@@ -153,6 +153,64 @@ footer a{color:var(--accent-blue);text-decoration:none;}
   vertical-align:middle;margin-left:8px;letter-spacing:0.3px;}
 .asset-crypto{background:rgba(255,159,10,0.16);color:#ff9f0a;border:1px solid rgba(255,159,10,0.4);}
 .asset-stock{background:rgba(74,144,217,0.14);color:var(--accent-blue);border:1px solid rgba(74,144,217,0.35);}
+
+/* ════════ Quant Terminal Restyle ════════ */
+:root{ --accent-bright:#3dd4a0;
+  --mono:"SF Mono","SFMono-Regular","Roboto Mono",Consolas,"Courier New",monospace; }
+
+/* Monospace tabular figures — the quant signature */
+.dv,.summary-stat .val,.pf-stat .v,.pos-grid .pv,.si strong,.quote-row,
+.budget-input input,.pnl-pos,.pnl-neg,.di .dv{
+  font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.2px; }
+.ticker-sym{ font-family:var(--mono); font-weight:700; letter-spacing:.5px; }
+.ta,.asset-badge{ font-family:var(--mono); letter-spacing:.5px; }
+
+/* Header — accent border + mono tagline */
+.header{ border-bottom:2px solid var(--accent-green); }
+.tagline-mono{ font-family:var(--mono); color:var(--accent-bright);
+  font-size:.72rem; letter-spacing:.5px; }
+#data-status{ font-family:var(--mono); letter-spacing:.3px; }
+
+/* Tabs — sticky glass, underline, active glow */
+.tabs{ position:sticky; top:0; z-index:20; gap:2px; padding:0 4px; border-radius:0;
+  background:rgba(13,17,23,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border); box-shadow:0 1px 8px rgba(0,0,0,.4); }
+.tab{ background:transparent; border:none; border-bottom:3px solid transparent;
+  border-radius:6px 6px 0 0; color:var(--text-secondary); padding:12px 18px; }
+.tab:hover{ background:rgba(46,189,133,.05); color:var(--accent-bright); border-color:transparent; }
+.tab.active{ background:rgba(46,189,133,.07); color:var(--accent-bright);
+  border-bottom-color:var(--accent-bright); }
+
+/* Toolbar / filter bar — sticky glass + focus glow */
+.filter-bar{ position:sticky; top:52px; z-index:15; padding:12px 14px; border-radius:var(--radius);
+  background:rgba(22,27,34,.82); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--border); box-shadow:0 2px 12px rgba(0,0,0,.4); }
+.search-wrap{ position:relative; flex:1; min-width:180px; }
+.search-wrap .search-icon{ position:absolute; left:11px; top:50%; transform:translateY(-50%);
+  color:var(--text-muted); pointer-events:none; font-size:.9rem; }
+.filter-bar input[type=text]{ padding-left:34px; border-width:2px; }
+.filter-bar input[type=text]:focus{ box-shadow:0 0 0 3px rgba(46,189,133,.18); }
+.filter-bar select{ border-width:2px; }
+.filter-bar select:focus{ box-shadow:0 0 0 3px rgba(46,189,133,.18); }
+
+/* Cards — elevation, hover lift, expanded glow */
+.card{ box-shadow:0 2px 12px rgba(0,0,0,.45); transition:border-color .2s,box-shadow .2s,transform .15s; }
+.card:hover{ border-color:rgba(46,189,133,.5); transform:translateY(-1px);
+  box-shadow:0 0 0 1px rgba(46,189,133,.14),0 6px 22px rgba(0,0,0,.5); }
+.card.expanded{ border-color:var(--accent-green);
+  box-shadow:0 0 0 1px rgba(46,189,133,.22),0 0 28px rgba(46,189,133,.08),0 6px 22px rgba(0,0,0,.45); }
+.pos-card,.pf-stat{ box-shadow:0 2px 10px rgba(0,0,0,.4); }
+.pos-card{ transition:all .18s; }
+.pos-card:hover{ transform:translateY(-1px);
+  box-shadow:0 0 0 1px rgba(46,189,133,.14),0 6px 22px rgba(0,0,0,.5); }
+.summary-banner{ box-shadow:0 2px 14px rgba(0,0,0,.3); }
+
+/* Custom scrollbar */
+*{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background:var(--bg-primary); }
+::-webkit-scrollbar-thumb{ background:var(--border); border-radius:6px; border:2px solid var(--bg-primary); }
+::-webkit-scrollbar-thumb:hover{ background:var(--accent-green); }
 </style>
 </head>
 <body>
@@ -176,7 +234,7 @@ footer a{color:var(--accent-blue);text-decoration:none;}
   <header class="header">
     <div>
       <h1>TradeScale</h1>
-      <div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px">Publicly disclosed trades, scaled to your budget</div>
+      <div class="tagline-mono" style="margin-top:3px">&#9656; PUBLIC TRADE DISCLOSURES &middot; SCALED TO YOUR BUDGET</div>
       <div id="data-status" style="font-size:0.72rem;margin-top:4px;color:var(--text-muted)">&#9203; Loading live data...</div>
     </div>
     <div class="budget-input">
@@ -411,12 +469,12 @@ function tradeCard(t){
     return'<div class="strat-item"><div class="strat-row"><strong style="font-size:.85rem">'+esc(s.type)+'</strong>'+
       '<span class="rb risk-'+s.risk+'">'+s.risk+'</span></div><p>'+esc(s.desc)+'</p></div>';
   }).join("")+'</div>';}
-  return'<div class="card">'+
+  return'<div class="card'+(open?' expanded':'')+'">'+
     '<div class="card-header"><div>'+
       '<div class="trader-name">'+esc(tr.name||"Unknown")+'</div>'+
       '<div class="trader-meta">'+esc(tr.fund||"")+'&bull;'+esc(tr.style||"")+'&bull;'+esc(t.date)+'</div>'+
     '</div><span class="ta '+t.action.toLowerCase()+'">'+t.action+'</span></div>'+
-    '<div style="font-size:1.2rem;font-weight:700;margin-bottom:4px">'+esc(t.ticker)+
+    '<div style="font-size:1.2rem;font-weight:700;margin-bottom:4px"><span class="ticker-sym">'+esc(t.ticker)+'</span>'+
       ' <span style="color:#9aa4b2;font-weight:400;font-size:.85rem">'+esc(t.co)+'</span>'+(t.asset==="crypto"?'<span class="asset-badge asset-crypto">CRYPTO</span>':'<span class="asset-badge asset-stock">STOCK</span>')+'</div>'+
     '<div class="trade-details">'+
       '<div class="di"><div class="dl">Their Trade</div><div class="dv">'+fmt(t.value)+'</div></div>'+
@@ -455,7 +513,7 @@ function stratCard(s){
 // ---- TAB RENDERS ----
 function renderTrades(){
   var fb='<div class="filter-bar">'+
-    '<input type="text" id="sq" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/>'+
+    '<div class="search-wrap"><span class="search-icon">&#128269;</span><input type="text" id="sq" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/></div>'+
     '<select id="st">'+
       '<option value="all"'+(S.trader==="all"?' selected':'')+'>All Traders</option>'+
       topTraders.map(function(t){return'<option value="'+t.id+'"'+(S.trader===String(t.id)?' selected':'')+'>'+esc(t.name)+'</option>';}).join("")+
