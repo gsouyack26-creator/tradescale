@@ -68,6 +68,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 .fa{background:rgba(74,144,217,0.15);color:var(--accent-blue);border-color:var(--accent-blue);}
 .fb{background:rgba(0,212,170,0.15);color:var(--accent-green);border-color:var(--accent-green);}
 .fs{background:rgba(255,71,87,0.15);color:var(--accent-red);border-color:var(--accent-red);}
+.fc{background:rgba(255,159,10,0.16);color:#ff9f0a;border-color:#ff9f0a;}
 .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
   padding:20px;margin-bottom:16px;transition:border-color 0.2s;}
 .card:hover{border-color:var(--accent-blue);}
@@ -314,8 +315,8 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     return {budget:s.budget||500,tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",open:s.open||{},paper:s.paper||[]};
-  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",open:{},paper:[]};}
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",open:s.open||{},paper:s.paper||[]};
+  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",open:{},paper:[]};}
 }
 var S=loadState();
 var PRICES={};
@@ -408,6 +409,7 @@ function addPaper(tradeId){
     ticker:t.ticker,co:t.co,dir:t.action==="BUY"?"LONG":"SHORT",
     entry:t.price,shares:shares,cost:cost,
     date:new Date().toISOString().slice(0,10),
+    spyEntry:curPrice("SPY"),
     who:tr.name||"",fund:tr.fund||""
   });
   save();updatePfBadge();
@@ -432,6 +434,8 @@ function filtered(){
   var list=trades.slice();
   if(S.q.trim()){var q=S.q.trim().toUpperCase();list=list.filter(function(t){return t.ticker.indexOf(q)!==-1||t.co.toUpperCase().indexOf(q)!==-1;});}
   if(S.action!=="all")list=list.filter(function(t){return t.action===S.action.toUpperCase();});
+  if(S.asset==="crypto")list=list.filter(function(t){return t.asset==="crypto";});
+  else if(S.asset==="stock")list=list.filter(function(t){return t.asset!=="crypto";});
   if(S.trader!=="all"){list=list.filter(function(t){return (trader(t.tid)||{}).name===S.trader;});}
   list.sort(function(a,b){
     if(S.sort==="date")return b.date.localeCompare(a.date);
@@ -527,6 +531,10 @@ function renderTrades(){
     '<button class="filter-tag'+(S.action==="all"?' fa':'')+'" data-act="all">All</button>'+
     '<button class="filter-tag'+(S.action==="buy"?' fb':'')+'" data-act="buy">BUY Only</button>'+
     '<button class="filter-tag'+(S.action==="sell"?' fs':'')+'" data-act="sell">SELL Only</button>'+
+    '<span style="width:1px;height:22px;background:var(--border);margin:0 4px"></span>'+
+    '<button class="filter-tag'+(S.asset==="all"?' fa':'')+'" data-asset="all">All Assets</button>'+
+    '<button class="filter-tag'+(S.asset==="stock"?' fb':'')+'" data-asset="stock">Stocks</button>'+
+    '<button class="filter-tag'+(S.asset==="crypto"?' fc':'')+'" data-asset="crypto">Crypto</button>'+
   '</div>';
   var list=filtered();
   var cards=list.length?list.map(tradeCard).join(""):
@@ -605,6 +613,17 @@ function renderPortfolio(){
   var totPct=totalCost>0?(totalPnl/totalCost)*100:0;
   var tcls=totalPnl>=0?"pnl-pos":"pnl-neg";
   var tsign=totalPnl>=0?"+":"";
+  // S&P 500 benchmark: how SPY moved over the same holding windows (cost-weighted)
+  var spyNow=curPrice("SPY"),benchCost=0,benchRet=0;
+  S.paper.forEach(function(pos){if(spyNow&&pos.spyEntry>0){benchCost+=pos.cost;benchRet+=pos.cost*((spyNow-pos.spyEntry)/pos.spyEntry);}});
+  var benchPct=benchCost>0?(benchRet/benchCost)*100:null;
+  var vsSpy=benchPct===null?null:(totPct-benchPct);
+  var benchStat="";
+  if(vsSpy!==null){
+    var bcls=vsSpy>=0?"pnl-pos":"pnl-neg",bsign=vsSpy>=0?"+":"",word=vsSpy>=0?"Beating":"Trailing";
+    benchStat='<div class="pf-stat" title="Your return vs buying the S&P 500 (SPY) over the same period">'+
+      '<div class="v '+bcls+'">'+bsign+vsSpy.toFixed(1)+'%</div><div class="l">'+word+' S&amp;P 500</div></div>';
+  }
   var summary='<div class="pf-summary">'+
     '<div class="pf-stat"><div class="v">$'+totalCost.toFixed(0)+'</div><div class="l">Invested</div></div>'+
     '<div class="pf-stat"><div class="v">$'+totalVal.toFixed(0)+'</div><div class="l">Current Value</div></div>'+
@@ -645,6 +664,9 @@ function bindBody(){
   if(ss)ss.addEventListener("change",function(e){S.sort=e.target.value;renderTrades();save();});
   document.querySelectorAll("[data-act]").forEach(function(b){
     b.addEventListener("click",function(e){S.action=e.currentTarget.getAttribute("data-act");renderTrades();save();});
+  });
+  document.querySelectorAll("[data-asset]").forEach(function(b){
+    b.addEventListener("click",function(e){S.asset=e.currentTarget.getAttribute("data-asset");renderTrades();save();});
   });
   document.querySelectorAll("[data-tog]").forEach(function(b){
     b.addEventListener("click",function(e){var k=e.currentTarget.getAttribute("data-tog");S.open[k]=!S.open[k];renderTrades();save();});
@@ -697,10 +719,33 @@ function loadLiveData(){
   });
 }
 
+// ---- #2 LIVE CRYPTO QUOTES (CoinGecko, browser-side, ~60s) ----
+var CG_ID={BTC:"bitcoin",ETH:"ethereum",BNB:"binancecoin",SOL:"solana",XRP:"ripple",ADA:"cardano",DOGE:"dogecoin",AVAX:"avalanche-2",LINK:"chainlink",DOT:"polkadot"};
+function refreshCryptoQuotes(){
+  var syms={};
+  trades.forEach(function(t){if(t.asset==="crypto"&&CG_ID[t.ticker])syms[t.ticker]=CG_ID[t.ticker];});
+  var ids=[];for(var k in syms)ids.push(syms[k]);
+  if(!ids.length)return;
+  fetch("https://api.coingecko.com/api/v3/simple/price?ids="+ids.join(",")+"&vs_currencies=usd")
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){
+      if(!d)return;
+      var changed=false;
+      for(var sym in syms){var v=d[syms[sym]]&&d[syms[sym]].usd;if(typeof v==="number"&&v>0){PRICES[sym]=Math.round(v*100)/100;changed=true;}}
+      if(!changed)return;
+      var sqEl=id("sq");
+      var typing=sqEl&&document.activeElement===sqEl;
+      if((S.tab==="trades"&&!typing)||S.tab==="portfolio")render();
+      var st=id("crypto-live");if(st)st.textContent="\u20bf live";
+    }).catch(function(){});
+}
+
 // ---- BOOT ----
 initDisc();
 render();
 loadLiveData();
+setTimeout(refreshCryptoQuotes,1500);
+setInterval(refreshCryptoQuotes,60000);
 
 // ---- PWA: register service worker (only over http/https, not file://) ----
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){

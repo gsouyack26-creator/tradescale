@@ -227,6 +227,12 @@ def main():
                 prices[tk] = round(q, 2)
     print(f"  got {len(prices)} live quotes")
 
+    # S&P 500 benchmark (SPY) for portfolio comparison
+    sp = quote("SPY")
+    if sp is not None:
+        prices["SPY"] = round(sp, 2)
+        print(f"  SPY benchmark: ${prices['SPY']}")
+
     # merge live crypto prices (CoinGecko) over any Yahoo attempt
     prices.update(c_prices)
 
