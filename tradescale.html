@@ -432,7 +432,7 @@ function filtered(){
   var list=trades.slice();
   if(S.q.trim()){var q=S.q.trim().toUpperCase();list=list.filter(function(t){return t.ticker.indexOf(q)!==-1||t.co.toUpperCase().indexOf(q)!==-1;});}
   if(S.action!=="all")list=list.filter(function(t){return t.action===S.action.toUpperCase();});
-  if(S.trader!=="all"){var tid=parseInt(S.trader,10);list=list.filter(function(t){return t.tid===tid;});}
+  if(S.trader!=="all"){list=list.filter(function(t){return (trader(t.tid)||{}).name===S.trader;});}
   list.sort(function(a,b){
     if(S.sort==="date")return b.date.localeCompare(a.date);
     if(S.sort==="vd")return b.value-a.value;
@@ -516,7 +516,7 @@ function renderTrades(){
     '<div class="search-wrap"><span class="search-icon">&#128269;</span><input type="text" id="sq" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/></div>'+
     '<select id="st">'+
       '<option value="all"'+(S.trader==="all"?' selected':'')+'>All Traders</option>'+
-      topTraders.map(function(t){return'<option value="'+t.id+'"'+(S.trader===String(t.id)?' selected':'')+'>'+esc(t.name)+'</option>';}).join("")+
+      (function(){var seen={},o='';topTraders.forEach(function(t){if(seen[t.name])return;seen[t.name]=1;o+='<option value="'+esc(t.name)+'"'+(S.trader===t.name?' selected':'')+'>'+esc(t.name)+'</option>';});return o;})()+
     '</select>'+
     '<select id="ss">'+
       '<option value="date"'+(S.sort==="date"?' selected':'')+'>Newest First</option>'+
@@ -683,7 +683,7 @@ function loadLiveData(){
       PRICES=d.prices||{};
       // reset any stale open-strategy keys and trader filter
       S.open={};
-      if(S.trader!=="all"){var ok=false;for(var i=0;i<topTraders.length;i++)if(String(topTraders[i].id)===S.trader)ok=true;if(!ok)S.trader="all";}
+      if(S.trader!=="all"){var ok=false;for(var i=0;i<topTraders.length;i++)if(topTraders[i].name===S.trader)ok=true;if(!ok)S.trader="all";}
       render();
       var when=d.latest_trade_date||"recent";
       var gen=d.generated_at?new Date(d.generated_at):null;
