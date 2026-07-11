@@ -19,6 +19,8 @@ jobs:
           python-version: "3.12"
       - name: Fetch latest ARK trades
         run: python fetch_data.py
+        env:
+          FINNHUB_KEY: ${{ secrets.FINNHUB_KEY }}
       - name: Commit if changed
         run: |
           git config user.name "tradescale-bot"

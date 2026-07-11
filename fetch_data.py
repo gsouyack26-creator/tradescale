@@ -20,8 +20,18 @@ FUNDS = {
 def fetch(url):
     return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30).read()
 
+FINNHUB_KEY = os.environ.get("FINNHUB_KEY", "").strip()
+
 def quote(symbol):
-    """Current market price for a symbol via Yahoo (no key). None on failure."""
+    """Current market price for a symbol. Finnhub first (if FINNHUB_KEY set), else Yahoo. None on failure."""
+    if FINNHUB_KEY:
+        try:
+            d = json.loads(fetch(f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={FINNHUB_KEY}"))
+            c = d.get("c")
+            if isinstance(c, (int, float)) and c > 0:
+                return c
+        except Exception:
+            pass
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
     try:
         d = json.loads(fetch(url))
