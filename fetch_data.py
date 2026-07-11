@@ -3,7 +3,7 @@
 Runs on GitHub Actions (daily cron). No API key required.
 Sources: arkfunds.io (unofficial API) + ark-funds.com official holdings CSV.
 """
-import urllib.request, json, csv, io, os, sys
+import urllib.request, json, csv, io, os, sys, re
 from datetime import datetime, timezone
 
 UA = {"User-Agent": "Mozilla/5.0 (TradeScale data fetcher)"}
@@ -146,6 +146,73 @@ def fetch_crypto(start_tid, start_trade_id):
     return traders, ctrades, prices
 
 
+def _midpoint(a):
+    nums = re.findall(r"[\d,]+", (a or "").replace("\n", " "))
+    vals = [int(n.replace(",", "")) for n in nums if n.replace(",", "").isdigit()]
+    if not vals:
+        return 0
+    return (vals[0] + vals[1]) / 2 if len(vals) >= 2 else vals[0]
+
+
+def fetch_congress(start_tid, start_trade_id, quote_fn):
+    """Return (traders, trades) for recent congressional STOCK Act disclosures (CongressInvests, free/no-key)."""
+    traders, ctrades = [], []
+    tid, trade_id = start_tid, start_trade_id
+    try:
+        data = json.loads(fetch("https://congressinfor-production.up.railway.app/trades/recent?days=120&limit=250"))
+    except Exception as e:
+        print(f"  [warn] congress fetch failed: {e}", file=sys.stderr)
+        return traders, ctrades
+    rows = data.get("trades", [])
+
+    seen, uniq = set(), []
+    for r in rows:
+        tk = (r.get("ticker") or "").strip().upper()
+        if not tk or len(tk) > 6 or not tk.isalpha():
+            continue
+        key = (r.get("member"), tk, r.get("tx_date"), r.get("amount"), r.get("trade_type"))
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(r)
+
+    uniq.sort(key=lambda r: r.get("tx_date", ""), reverse=True)
+    uniq = uniq[:25]
+
+    port_by = {}
+    for r in uniq:
+        port_by[r["member"]] = port_by.get(r["member"], 0) + _midpoint(r.get("amount"))
+
+    member_tid = {}
+    for r in uniq:
+        m = r["member"]
+        chamber = r.get("chamber", "Congress")
+        if m not in member_tid:
+            member_tid[m] = tid
+            traders.append({
+                "id": tid, "name": m, "fund": f"{chamber} \u00b7 U.S. Congress",
+                "port": round(port_by[m]) or 1_000_000,
+                "style": "Congressional Disclosure (STOCK Act)",
+                "src": "CongressInvests (Senate EFD + House Clerk)",
+            })
+            tid += 1
+        mp = _midpoint(r.get("amount"))
+        tk = r["ticker"].strip().upper()
+        price = quote_fn(tk) or 0
+        shares = (mp / price) if price else 0
+        action = "BUY" if str(r.get("trade_type", "")).lower().startswith("b") else "SELL"
+        co = (r.get("asset") or tk).replace(" - Common Stock", "").replace(" Common Stock", "").strip()
+        rng = (r.get("amount") or "").replace("\n", " ")
+        ctrades.append({
+            "id": trade_id, "tid": member_tid[m], "ticker": tk, "co": co, "action": action,
+            "shares": round(shares, 2), "price": round(price, 2), "value": round(mp),
+            "date": r.get("tx_date", ""), "port": round(port_by[m]) or 1_000_000,
+            "why": f"Disclosed {action.lower()} by {m} ({chamber}). STOCK Act filing {r.get('disclosed','')}. Reported range: {rng}.",
+        })
+        trade_id += 1
+    return traders, ctrades
+
+
 def main():
     all_trades, traders, tid_map = [], [], {}
     trade_id = 1
@@ -212,6 +279,15 @@ def main():
     all_trades.extend(c_trades)
     print(f"  got {len(c_traders)} crypto whales, {len(c_trades)} holdings")
 
+    # congressional STOCK Act disclosures
+    print("\nFetching congressional trades...")
+    next_tid = max([t["id"] for t in traders], default=0) + 1
+    next_trade = max([t["id"] for t in all_trades], default=0) + 1
+    g_traders, g_trades = fetch_congress(next_tid, next_trade, quote)
+    traders.extend(g_traders)
+    all_trades.extend(g_trades)
+    print(f"  got {len(g_traders)} members, {len(g_trades)} disclosed trades")
+
     # sort newest first, cap size (keep all crypto whales + newest ARK trades)
     all_trades.sort(key=lambda x: x["date"], reverse=True)
     all_trades = all_trades[:80]
@@ -240,7 +316,7 @@ def main():
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "prices": prices,
         "latest_trade_date": latest_date,
-        "source": "ARK Invest disclosures (arkfunds.io) + crypto whales (CoinGecko + SEC filings)",
+        "source": "ARK Invest (arkfunds.io) + crypto whales (CoinGecko) + Congress (CongressInvests/EFD)",
         "traders": traders,
         "trades": all_trades,
     }
