@@ -233,6 +233,13 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .wl-live-b{background:rgba(46,189,133,.16);color:var(--accent-bright);border:1px solid rgba(46,189,133,.4);}
 .wl-eod-b{background:rgba(110,118,129,.16);color:var(--text-secondary);border:1px solid var(--border);}
 .wl-cr{background:rgba(255,159,10,.16);color:#ff9f0a;border:1px solid rgba(255,159,10,.4);}
+.wl-fh{margin:0 0 14px;font-size:.8rem;color:var(--text-secondary);line-height:1.7;}
+.wl-fh input{background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-family:var(--mono);padding:5px 9px;border-radius:6px;font-size:.75rem;margin:0 5px;width:190px;outline:none;}
+.wl-fh input:focus{border-color:var(--accent-blue);}
+.wl-fh button{background:var(--accent-green);color:#0d1117;border:none;border-radius:6px;font-weight:700;padding:5px 11px;cursor:pointer;font-size:.75rem;}
+.wl-fh button:hover{filter:brightness(1.1);}
+.linkbtn{background:none!important;border:none;color:var(--accent-blue)!important;cursor:pointer;font-size:.8rem!important;padding:0!important;text-decoration:underline;font-weight:600;}
+.wl-fh a{color:var(--accent-blue);font-weight:600;}
 .wl-x{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0 4px;line-height:1;}
 .wl-x:hover{color:var(--accent-red);}
 @keyframes flashUp{0%{background:rgba(46,189,133,.35)}100%{background:transparent}}
@@ -681,6 +688,7 @@ function tickInfo(tk){
 function wchg(tk){
   var info=tickInfo(tk),cur=curPrice(tk);
   if(info.asset==="crypto"&&CRYPTO_LIVE[tk])return CRYPTO_LIVE[tk].chg24||0;
+  if(info.asset!=="crypto"&&STOCK_LIVE[tk])return STOCK_LIVE[tk].chg||0;
   if(info.asset!=="crypto"&&cur!=null&&info.entry)return ((cur-info.entry)/info.entry)*100;
   return 0;
 }
@@ -698,6 +706,7 @@ function renderWatchlist(){
     var info=tickInfo(tk),cur=curPrice(tk),isCr=info.asset==="crypto";
     var chg=null,chgLbl="";
     if(isCr&&CRYPTO_LIVE[tk]){chg=CRYPTO_LIVE[tk].chg24;chgLbl="24h";}
+    else if(!isCr&&STOCK_LIVE[tk]){chg=STOCK_LIVE[tk].chg;chgLbl="day";}
     else if(!isCr&&cur!=null&&info.entry){chg=((cur-info.entry)/info.entry)*100;chgLbl="disc";}
     var prev=PREV_PX[tk];
     var dir=(prev!=null&&cur!=null)?(cur>prev?"up":cur<prev?"down":""):"";
@@ -705,7 +714,8 @@ function renderWatchlist(){
     var chTxt=chg==null?"&mdash;":(chg>=0?"+":"")+chg.toFixed(2)+'% <span style="color:var(--text-muted);font-size:.6rem">'+chgLbl+'</span>';
     var last=cur!=null?"$"+cur.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"&mdash;";
     var badge=isCr?'<span class="wl-badge wl-cr">CRYPTO</span> <span class="wl-badge wl-live-b">LIVE</span>':
-      (cur!=null?'<span class="wl-badge wl-eod-b">EOD</span>':'<span class="wl-badge wl-eod-b">NO DATA</span>');
+      (STOCK_LIVE[tk]?'<span class="wl-badge wl-eod-b">STOCK</span> <span class="wl-badge wl-live-b">LIVE</span>':
+       (cur!=null?'<span class="wl-badge wl-eod-b">EOD</span>':'<span class="wl-badge wl-eod-b">NO DATA</span>'));
     return '<tr class="'+dir+'"><td class="l wl-sym">'+esc(tk)+'</td>'+
       '<td class="l wl-name">'+esc(info.co)+'</td>'+
       '<td>'+last+'</td>'+
@@ -724,6 +734,9 @@ function renderWatchlist(){
       '</select>'+
       '<div class="wl-live"><span class="dot"></span>LIVE &bull; updated '+ago+'</div>'+
     '</div>'+
+    (FH_KEY?
+      '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes active via Finnhub. <button id="fh-clear" class="linkbtn">Remove key</button></div>':
+      '<div class="wl-fh">Stocks show end-of-day close. Want <strong>real-time</strong> stock quotes too? <a href="https://finnhub.io/register" target="_blank" rel="noopener">Grab a free Finnhub key</a>, paste it here: <input id="fh-key-input" placeholder="Finnhub API key" maxlength="64" autocomplete="off"/><button id="fh-save">Go Live</button> <span style="font-size:.7rem">(stored only in your browser, never uploaded)</span></div>')+
     (wl.length?'<div style="overflow-x:auto"><table class="wl-table"><thead><tr>'+
       '<th class="l">Symbol</th><th class="l">Name</th><th>Last</th><th>Change</th><th>Type</th><th></th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>':
@@ -737,6 +750,11 @@ function bindWatch(){
   if(ab)ab.addEventListener("click",add);
   if(ai)ai.addEventListener("keydown",function(e){if(e.key==="Enter")add();});
   var ss=id("wl-sort");if(ss)ss.addEventListener("change",function(e){S.wsort=e.target.value;save();render();});
+  var fs=id("fh-save"),fi=id("fh-key-input"),fc=id("fh-clear");
+  function saveFh(){setFhKey(fi?fi.value:"");render();setTimeout(refreshStockQuotes,120);}
+  if(fs)fs.addEventListener("click",saveFh);
+  if(fi)fi.addEventListener("keydown",function(e){if(e.key==="Enter")saveFh();});
+  if(fc)fc.addEventListener("click",function(){setFhKey("");render();});
   document.querySelectorAll("[data-wlx]").forEach(function(b){
     b.addEventListener("click",function(e){var tk=e.currentTarget.getAttribute("data-wlx");S.watch=getWatch().filter(function(x){return x!==tk;});save();render();});
   });
@@ -846,12 +864,35 @@ function refreshCryptoQuotes(){
     }).catch(function(){});
 }
 
+// ---- LIVE STOCK QUOTES (Finnhub, browser-side, opt-in free key) ----
+var STOCK_LIVE={},FH_KEY="";
+try{FH_KEY=localStorage.getItem("ts_fhkey")||"";}catch(e){}
+function setFhKey(k){FH_KEY=(k||"").trim();try{if(FH_KEY)localStorage.setItem("ts_fhkey",FH_KEY);else localStorage.removeItem("ts_fhkey");}catch(e){}}
+function stockSyms(){var s={};getWatch().forEach(function(tk){var i=tickInfo(tk);if(i.asset!=="crypto")s[tk]=1;});return Object.keys(s).slice(0,40);}
+function refreshStockQuotes(){
+  if(!FH_KEY)return;
+  var syms=stockSyms();if(!syms.length)return;
+  var done=0,changed=false;
+  syms.forEach(function(tk){
+    fetch("https://finnhub.io/api/v1/quote?symbol="+encodeURIComponent(tk)+"&token="+encodeURIComponent(FH_KEY))
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(q){if(q&&typeof q.c==="number"&&q.c>0){PRICES[tk]=Math.round(q.c*100)/100;STOCK_LIVE[tk]={price:PRICES[tk],chg:(typeof q.dp==="number"?q.dp:0)};changed=true;}})
+      .catch(function(){})
+      .then(function(){done++;if(done===syms.length&&changed){LIVE_TS=Date.now();
+        var wa=id("wl-add-input"),typingW=wa&&document.activeElement===wa;
+        var fk=id("fh-key-input"),typingK=fk&&document.activeElement===fk;
+        if((S.tab==="watchlist"&&!typingW&&!typingK)||S.tab==="trades"||S.tab==="portfolio")render();}});
+  });
+}
+
 // ---- BOOT ----
 initDisc();
 render();
 loadLiveData();
 setTimeout(refreshCryptoQuotes,1500);
 setInterval(refreshCryptoQuotes,30000);
+setTimeout(refreshStockQuotes,2200);
+setInterval(refreshStockQuotes,30000);
 
 // ---- PWA: register service worker (only over http/https, not file://) ----
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
