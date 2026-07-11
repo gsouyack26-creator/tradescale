@@ -240,6 +240,19 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .wl-fh button:hover{filter:brightness(1.1);}
 .linkbtn{background:none!important;border:none;color:var(--accent-blue)!important;cursor:pointer;font-size:.8rem!important;padding:0!important;text-decoration:underline;font-weight:600;}
 .wl-fh a{color:var(--accent-blue);font-weight:600;}
+.fg{background:rgba(227,179,65,0.15);color:var(--accent-gold);border-color:var(--accent-gold);}
+.consensus{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);}
+.cons-lbl{font-size:.78rem;font-weight:700;color:var(--text-secondary);letter-spacing:.3px;margin-right:2px;}
+.cons-chip{display:inline-flex;align-items:center;gap:7px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:20px;padding:5px 11px;cursor:pointer;font-size:.75rem;transition:border-color .15s,transform .1s;}
+.cons-chip:hover{border-color:var(--accent-blue);transform:translateY(-1px);}
+.cons-chip.cons-hot{border-color:rgba(79,143,240,.5);background:rgba(79,143,240,.08);}
+.cc-sym{font-family:var(--mono);font-weight:700;color:var(--text-primary);}
+.cc-n{color:var(--text-muted);font-size:.68rem;}
+.cc-dir{font-family:var(--mono);font-size:.7rem;font-weight:700;}
+.net-buy{color:var(--accent-green);}.net-sell{color:var(--accent-red);}.net-mix{color:var(--text-secondary);}
+.spark{display:block;}
+.wl-spark{min-width:66px;}
+.wl-nospark{color:var(--text-muted);}
 .wl-x{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0 4px;line-height:1;}
 .wl-x:hover{color:var(--accent-red);}
 @keyframes flashUp{0%{background:rgba(46,189,133,.35)}100%{background:transparent}}
@@ -350,8 +363,8 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     return {budget:s.budget||500,tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",watch:(s.watch||null),wsort:s.wsort||"chg",open:s.open||{},paper:s.paper||[]};
-  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",watch:null,wsort:"chg",open:{},paper:[]};}
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(s.watch||null),wsort:s.wsort||"chg",open:s.open||{},paper:s.paper||[]};
+  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",open:{},paper:[]};}
 }
 var S=loadState();
 var PRICES={};
@@ -464,6 +477,46 @@ function posPnl(pos){
   return{cur:cur,pnl:pnl,val:val,pct:pct,noQuote:curPrice(pos.ticker)===null};
 }
 
+// ---- ANALYTICS ----
+function traderClass(tid){
+  var tr=trader(tid)||{};
+  var st=(tr.style||"")+" "+(tr.fund||"")+" "+(tr.src||"");
+  if(/STOCK Act|Congress/i.test(st))return "congress";
+  if(/Treasury|Accumulation/i.test(st))return "crypto";
+  for(var i=0;i<trades.length;i++)if(trades[i].tid===tid&&trades[i].asset==="crypto")return "crypto";
+  return "fund";
+}
+function consensus(){
+  var m={};
+  trades.forEach(function(t){
+    if(!t.ticker)return;
+    var e=m[t.ticker]||(m[t.ticker]={ticker:t.ticker,co:t.co,tr:{},buys:0,sells:0});
+    e.tr[t.tid]=1;
+    if(t.action==="BUY")e.buys++;else e.sells++;
+  });
+  var arr=[];for(var k in m){var e=m[k];e.nt=Object.keys(e.tr).length;e.net=e.buys-e.sells;arr.push(e);}
+  arr.sort(function(a,b){return (b.nt-a.nt)||((b.buys+b.sells)-(a.buys+a.sells));});
+  return arr;
+}
+function sparkSvg(arr,pos){
+  if(!arr||arr.length<2)return "";
+  var w=66,h=20,min=Math.min.apply(null,arr),max=Math.max.apply(null,arr),rng=(max-min)||1;
+  var pts=arr.map(function(v,i){var x=(i/(arr.length-1))*w;var y=h-((v-min)/rng)*(h-2)-1;return x.toFixed(1)+","+y.toFixed(1);}).join(" ");
+  var col=pos?"var(--accent-green)":"var(--accent-red)";
+  return '<svg class="spark" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+col+'" stroke-width="1.4" points="'+pts+'"/></svg>';
+}
+function exportCsv(){
+  var rows=[["Ticker","Company","Direction","Shares","Entry","Current","Cost","Value","PnL","PnL%","CopiedFrom","Date"]];
+  S.paper.forEach(function(p){var r=posPnl(p);rows.push([p.ticker,p.co,p.dir,p.shares.toFixed(4),p.entry,r.cur.toFixed(2),p.cost.toFixed(2),r.val.toFixed(2),r.pnl.toFixed(2),r.pct.toFixed(1),p.who,p.date]);});
+  var csv=rows.map(function(r){return r.map(function(c){var v=String(c==null?"":c);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(",");}).join("\n");
+  try{
+    var blob=new Blob([csv],{type:"text/csv"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="tradescale-portfolio-"+new Date().toISOString().slice(0,10)+".csv";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }catch(e){}
+}
+
 // ---- FILTER/SORT ----
 function filtered(){
   var list=trades.slice();
@@ -471,6 +524,7 @@ function filtered(){
   if(S.action!=="all")list=list.filter(function(t){return t.action===S.action.toUpperCase();});
   if(S.asset==="crypto")list=list.filter(function(t){return t.asset==="crypto";});
   else if(S.asset==="stock")list=list.filter(function(t){return t.asset!=="crypto";});
+  if(S.ttype!=="all")list=list.filter(function(t){return traderClass(t.tid)===S.ttype;});
   if(S.trader!=="all"){list=list.filter(function(t){return (trader(t.tid)||{}).name===S.trader;});}
   list.sort(function(a,b){
     if(S.sort==="date")return b.date.localeCompare(a.date);
@@ -570,11 +624,28 @@ function renderTrades(){
     '<button class="filter-tag'+(S.asset==="all"?' fa':'')+'" data-asset="all">All Assets</button>'+
     '<button class="filter-tag'+(S.asset==="stock"?' fb':'')+'" data-asset="stock">Stocks</button>'+
     '<button class="filter-tag'+(S.asset==="crypto"?' fc':'')+'" data-asset="crypto">Crypto</button>'+
+    '<span style="width:1px;height:22px;background:var(--border);margin:0 4px"></span>'+
+    '<button class="filter-tag'+(S.ttype==="all"?' fa':'')+'" data-ttype="all">Everyone</button>'+
+    '<button class="filter-tag'+(S.ttype==="fund"?' fb':'')+'" data-ttype="fund">Funds</button>'+
+    '<button class="filter-tag'+(S.ttype==="congress"?' fg':'')+'" data-ttype="congress">Congress</button>'+
+    '<button class="filter-tag'+(S.ttype==="crypto"?' fc':'')+'" data-ttype="crypto">Crypto Whales</button>'+
   '</div>';
   var list=filtered();
   var cards=list.length?list.map(tradeCard).join(""):
     '<div class="empty"><div>&#128269;</div><p>No trades match your filters. Try clearing the search.</p></div>';
-  id("tab-body").innerHTML='<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+fb+cards;
+  var cons=consensus().slice(0,6);
+  var consHtml="";
+  if(cons.length){
+    consHtml='<div class="consensus"><span class="cons-lbl">&#128293; Most Traded</span>'+cons.map(function(e){
+      var dir=e.net>0?"net-buy":e.net<0?"net-sell":"net-mix";
+      var arrow=e.net>0?"&#9650;":e.net<0?"&#9660;":"&#8596;";
+      var multi=e.nt>=2?' cons-hot':'';
+      return '<button class="cons-chip'+multi+'" data-cons="'+esc(e.ticker)+'"><span class="cc-sym">'+esc(e.ticker)+'</span>'+
+        '<span class="cc-n">'+e.nt+(e.nt===1?" trader":" traders")+'</span>'+
+        '<span class="cc-dir '+dir+'">'+arrow+' '+(e.buys)+"B/"+(e.sells)+'S</span></button>';
+    }).join("")+'</div>';
+  }
+  id("tab-body").innerHTML='<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+consHtml+fb+cards;
   bindBody();
 }
 function renderStrategies(){
@@ -668,7 +739,9 @@ function renderPortfolio(){
   '</div>';
   body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
     summary+cards+
-    '<div style="margin-top:16px"><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
+    '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
+  var exp=id("export-csv");
+  if(exp)exp.addEventListener("click",exportCsv);
   var clr=id("clear-all");
   if(clr)clr.addEventListener("click",function(){if(confirm("Clear all paper positions?")){S.paper=[];save();render();}});
   document.querySelectorAll("[data-close]").forEach(function(b){
@@ -720,6 +793,7 @@ function renderWatchlist(){
       '<td class="l wl-name">'+esc(info.co)+'</td>'+
       '<td>'+last+'</td>'+
       '<td class="'+chCls+'">'+chTxt+'</td>'+
+      '<td class="wl-spark">'+((isCr&&CRYPTO_LIVE[tk]&&CRYPTO_LIVE[tk].spark)?sparkSvg(CRYPTO_LIVE[tk].spark,CRYPTO_LIVE[tk].chg24>=0):'<span class="wl-nospark">&mdash;</span>')+'</td>'+
       '<td>'+badge+'</td>'+
       '<td><button class="wl-x" data-wlx="'+esc(tk)+'" title="Remove">&times;</button></td></tr>';
   }).join("");
@@ -738,7 +812,7 @@ function renderWatchlist(){
       '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes active via Finnhub. <button id="fh-clear" class="linkbtn">Remove key</button></div>':
       '<div class="wl-fh">Stocks show end-of-day close. Want <strong>real-time</strong> stock quotes too? <a href="https://finnhub.io/register" target="_blank" rel="noopener">Grab a free Finnhub key</a>, paste it here: <input id="fh-key-input" placeholder="Finnhub API key" maxlength="64" autocomplete="off"/><button id="fh-save">Go Live</button> <span style="font-size:.7rem">(stored only in your browser, never uploaded)</span></div>')+
     (wl.length?'<div style="overflow-x:auto"><table class="wl-table"><thead><tr>'+
-      '<th class="l">Symbol</th><th class="l">Name</th><th>Last</th><th>Change</th><th>Type</th><th></th>'+
+      '<th class="l">Symbol</th><th class="l">Name</th><th>Last</th><th>Change</th><th>7d</th><th>Type</th><th></th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>':
       '<div class="empty"><div>&#128200;</div><p>Watchlist empty. Add a symbol above (e.g. BTC, AAPL, NVDA).</p></div>');
   wl.forEach(function(tk){var c=curPrice(tk);if(c!=null)PREV_PX[tk]=c;});
@@ -787,6 +861,12 @@ function bindBody(){
   });
   document.querySelectorAll("[data-asset]").forEach(function(b){
     b.addEventListener("click",function(e){S.asset=e.currentTarget.getAttribute("data-asset");renderTrades();save();});
+  });
+  document.querySelectorAll("[data-ttype]").forEach(function(b){
+    b.addEventListener("click",function(e){S.ttype=e.currentTarget.getAttribute("data-ttype");renderTrades();save();});
+  });
+  document.querySelectorAll("[data-cons]").forEach(function(b){
+    b.addEventListener("click",function(e){var tk=e.currentTarget.getAttribute("data-cons");S.q=(S.q.trim().toUpperCase()===tk)?"":tk;renderTrades();save();});
   });
   document.querySelectorAll("[data-tog]").forEach(function(b){
     b.addEventListener("click",function(e){var k=e.currentTarget.getAttribute("data-tog");S.open[k]=!S.open[k];renderTrades();save();});
@@ -848,13 +928,13 @@ function refreshCryptoQuotes(){
   getWatch().forEach(function(tk){if(CG_ID[tk])syms[tk]=CG_ID[tk];});
   var ids=[];for(var k in syms)ids.push(syms[k]);
   if(!ids.length)return;
-  fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+ids.join(",")+"&per_page=250")
+  fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+ids.join(",")+"&per_page=250&sparkline=true")
     .then(function(r){return r.ok?r.json():null;})
     .then(function(d){
       if(!d||!d.length)return;
       var id2sym={};for(var s2 in syms)id2sym[syms[s2]]=s2;
       var changed=false;
-      d.forEach(function(c){var sym=id2sym[c.id];if(!sym)return;var v=c.current_price;if(typeof v==="number"&&v>0){PRICES[sym]=Math.round(v*100)/100;CRYPTO_LIVE[sym]={price:PRICES[sym],chg24:(c.price_change_percentage_24h||0)};changed=true;}});
+      d.forEach(function(c){var sym=id2sym[c.id];if(!sym)return;var v=c.current_price;if(typeof v==="number"&&v>0){PRICES[sym]=Math.round(v*100)/100;CRYPTO_LIVE[sym]={price:PRICES[sym],chg24:(c.price_change_percentage_24h||0),spark:(c.sparkline_in_7d&&c.sparkline_in_7d.price)||null};changed=true;}});
       if(!changed)return;
       LIVE_TS=Date.now();
       var sqEl=id("sq"),typing=sqEl&&document.activeElement===sqEl;
