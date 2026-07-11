@@ -253,6 +253,12 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .spark{display:block;}
 .wl-spark{min-width:66px;}
 .wl-nospark{color:var(--text-muted);}
+.insight{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:11px 14px;background:rgba(227,179,65,.06);border:1px solid rgba(227,179,65,.35);border-radius:var(--radius);font-size:.83rem;color:var(--text-secondary);line-height:1.5;}
+.ins-ico{font-size:1.1rem;}
+.ins-txt strong{color:var(--text-primary);}
+.ins-tk{font-family:var(--mono);font-weight:700;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:1px 8px;cursor:pointer;color:var(--accent-blue);}
+.ins-tk:hover{border-color:var(--accent-blue);}
+.pos-spark svg{display:block;}
 .wl-x{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0 4px;line-height:1;}
 .wl-x:hover{color:var(--accent-red);}
 @keyframes flashUp{0%{background:rgba(46,189,133,.35)}100%{background:transparent}}
@@ -498,6 +504,38 @@ function consensus(){
   arr.sort(function(a,b){return (b.nt-a.nt)||((b.buys+b.sells)-(a.buys+a.sells));});
   return arr;
 }
+function congressSummary(){
+  var buys=0,sells=0,buyVal=0,sellVal=0,members={},tk={};
+  trades.forEach(function(t){
+    if(traderClass(t.tid)!=="congress")return;
+    members[t.tid]=1;
+    if(t.action==="BUY"){buys++;buyVal+=t.value||0;tk[t.ticker]=(tk[t.ticker]||0)+1;}
+    else{sells++;sellVal+=t.value||0;}
+  });
+  if(!buys&&!sells)return null;
+  var top=Object.keys(tk).sort(function(a,b){return tk[b]-tk[a];})[0]||null;
+  return {buys:buys,sells:sells,net:buyVal-sellVal,members:Object.keys(members).length,top:top};
+}
+var HASH_KEYS=["tab","q","action","asset","ttype","trader","sort"];
+var HASH_DEF={tab:"trades",q:"",action:"all",asset:"all",ttype:"all",trader:"all",sort:"date"};
+function writeHash(){
+  var parts=[];
+  HASH_KEYS.forEach(function(k){var v=S[k];if(v!=null&&String(v)!==""&&String(v)!==String(HASH_DEF[k]))parts.push(k+"="+encodeURIComponent(v));});
+  var h=parts.join("&");
+  try{history.replaceState(null,"",h?("#"+h):(location.pathname+location.search));}catch(e){}
+}
+function readHash(){
+  var h=(location.hash||"").replace(/^#/,"");
+  if(!h)return;
+  h.split("&").forEach(function(p){var i=p.indexOf("="),k=i<0?p:p.slice(0,i),v=i<0?"":decodeURIComponent(p.slice(i+1));if(HASH_KEYS.indexOf(k)>=0&&v!=="")S[k]=v;});
+}
+function shareView(){
+  writeHash();
+  var url=location.href,btn=id("share-view");
+  function done(){if(btn){var o=btn.innerHTML;btn.innerHTML="\u2713 Link copied!";setTimeout(function(){btn.innerHTML=o;},1600);}}
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,function(){prompt("Copy this link:",url);});}else{prompt("Copy this link:",url);}}
+  catch(e){prompt("Copy this link:",url);}
+}
 function sparkSvg(arr,pos){
   if(!arr||arr.length<2)return "";
   var w=66,h=20,min=Math.min.apply(null,arr),max=Math.max.apply(null,arr),rng=(max-min)||1;
@@ -629,6 +667,7 @@ function renderTrades(){
     '<button class="filter-tag'+(S.ttype==="fund"?' fb':'')+'" data-ttype="fund">Funds</button>'+
     '<button class="filter-tag'+(S.ttype==="congress"?' fg':'')+'" data-ttype="congress">Congress</button>'+
     '<button class="filter-tag'+(S.ttype==="crypto"?' fc':'')+'" data-ttype="crypto">Crypto Whales</button>'+
+    '<button class="filter-tag" id="share-view" title="Copy a link to this exact filtered view" style="margin-left:auto">&#128279; Share view</button>'+
   '</div>';
   var list=filtered();
   var cards=list.length?list.map(tradeCard).join(""):
@@ -645,7 +684,16 @@ function renderTrades(){
         '<span class="cc-dir '+dir+'">'+arrow+' '+(e.buys)+"B/"+(e.sells)+'S</span></button>';
     }).join("")+'</div>';
   }
-  id("tab-body").innerHTML='<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+consHtml+fb+cards;
+  var cg=congressSummary(),cgHtml="";
+  if(cg){
+    var ncls=cg.net>=0?"pnl-pos":"pnl-neg",nsign=cg.net>=0?"+":"-";
+    cgHtml='<div class="insight"><span class="ins-ico">&#127963;&#65039;</span>'+
+      '<span class="ins-txt"><strong>Congress this period:</strong> '+
+      '<span class="pnl-pos">'+cg.buys+' buys</span> vs <span class="pnl-neg">'+cg.sells+' sells</span> '+
+      'across '+cg.members+' member'+(cg.members===1?"":"s")+' &bull; net flow <span class="'+ncls+'">'+nsign+fmt(Math.abs(cg.net))+'</span>'+
+      (cg.top?' &bull; most bought: <button class="ins-tk" data-cons="'+esc(cg.top)+'">'+esc(cg.top)+'</button>':'')+'</span></div>';
+  }
+  id("tab-body").innerHTML='<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+consHtml+cgHtml+fb+cards;
   bindBody();
 }
 function renderStrategies(){
@@ -704,7 +752,9 @@ function renderPortfolio(){
         '<span class="bp '+dirCls+'">'+pos.dir+'</span> '+
         '<span style="color:var(--text-muted);font-size:0.78rem">'+esc(pos.co)+'</span>'+
         (pos.who?'<div style="color:var(--text-muted);font-size:0.72rem;margin-top:2px">Copied from '+esc(pos.who)+' &bull; '+esc(pos.fund)+' &bull; '+esc(pos.date)+'</div>':'')+
-      '</div><button class="close-btn" data-close="'+pos.pid+'">Close</button></div>'+
+      '</div><div style="display:flex;align-items:center;gap:10px">'+
+        ((CG_ID[pos.ticker]||CRYPTO_LIVE[pos.ticker])&&CRYPTO_LIVE[pos.ticker]&&CRYPTO_LIVE[pos.ticker].spark?'<span class="pos-spark" title="7-day price trend">'+sparkSvg(CRYPTO_LIVE[pos.ticker].spark,CRYPTO_LIVE[pos.ticker].chg24>=0)+'</span>':'')+
+        '<button class="close-btn" data-close="'+pos.pid+'">Close</button></div></div>'+
       '<div class="pos-grid">'+
         '<div><div class="pl">Shares</div><div class="pv">'+pos.shares.toFixed(4)+'</div></div>'+
         '<div><div class="pl">Entry</div><div class="pv">$'+pos.entry.toFixed(2)+'</div></div>'+
@@ -846,6 +896,7 @@ function render(){
   else renderSources();
   updatePfBadge();
   save();
+  writeHash();
 }
 
 // ---- EVENT BINDING ----
@@ -868,6 +919,7 @@ function bindBody(){
   document.querySelectorAll("[data-cons]").forEach(function(b){
     b.addEventListener("click",function(e){var tk=e.currentTarget.getAttribute("data-cons");S.q=(S.q.trim().toUpperCase()===tk)?"":tk;renderTrades();save();});
   });
+  var sv=id("share-view");if(sv)sv.addEventListener("click",shareView);
   document.querySelectorAll("[data-tog]").forEach(function(b){
     b.addEventListener("click",function(e){var k=e.currentTarget.getAttribute("data-tog");S.open[k]=!S.open[k];renderTrades();save();});
   });
@@ -967,6 +1019,7 @@ function refreshStockQuotes(){
 
 // ---- BOOT ----
 initDisc();
+readHash();
 render();
 loadLiveData();
 setTimeout(refreshCryptoQuotes,1500);
