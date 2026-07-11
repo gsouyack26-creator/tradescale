@@ -1,5 +1,7 @@
 # TradeScale Quote Proxy (Cloudflare Worker)
 
+**Deployed URL:** https://tradescale-quotes.gsouyack26.workers.dev  (wired into tradescale.html as QUOTE_PROXY)
+
 Hides the Finnhub API key server-side and serves live stock quotes to the app.
 Locks CORS to the app origin and edge-caches each symbol for 20s so many visitors
 cost only a few upstream Finnhub calls (protects the free tier).

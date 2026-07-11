@@ -858,7 +858,9 @@ function renderWatchlist(){
       '</select>'+
       '<div class="wl-live"><span class="dot"></span>LIVE &bull; updated '+ago+'</div>'+
     '</div>'+
-    (FH_KEY?
+    (QUOTE_PROXY?
+      '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes stream automatically &mdash; no key or setup needed.</div>':
+     FH_KEY?
       '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes active via Finnhub. <button id="fh-clear" class="linkbtn">Remove key</button></div>':
       '<div class="wl-fh">Stocks show end-of-day close. Want <strong>real-time</strong> stock quotes too? <a href="https://finnhub.io/register" target="_blank" rel="noopener">Grab a free Finnhub key</a>, paste it here: <input id="fh-key-input" placeholder="Finnhub API key" maxlength="64" autocomplete="off"/><button id="fh-save">Go Live</button> <span style="font-size:.7rem">(stored only in your browser, never uploaded)</span></div>')+
     (wl.length?'<div style="overflow-x:auto"><table class="wl-table"><thead><tr>'+
@@ -997,18 +999,18 @@ function refreshCryptoQuotes(){
 }
 
 // ---- LIVE STOCK QUOTES (Finnhub, browser-side, opt-in free key) ----
-// Public free-tier Finnhub key, intentionally client-side for zero-config live stock quotes.
-var FH_DEFAULT="d99934pr01qssj1201ogd99934pr01qssj1201p0";
+// Live stock quotes route through a Cloudflare Worker that holds the Finnhub key server-side.
+var QUOTE_PROXY="https://tradescale-quotes.gsouyack26.workers.dev";
 var STOCK_LIVE={},FH_KEY="";
-try{FH_KEY=localStorage.getItem("ts_fhkey")||FH_DEFAULT;}catch(e){FH_KEY=FH_DEFAULT;}
+try{FH_KEY=localStorage.getItem("ts_fhkey")||"";}catch(e){}
 function setFhKey(k){FH_KEY=(k||"").trim();try{if(FH_KEY)localStorage.setItem("ts_fhkey",FH_KEY);else localStorage.removeItem("ts_fhkey");}catch(e){}}
 function stockSyms(){var s={};getWatch().forEach(function(tk){var i=tickInfo(tk);if(i.asset!=="crypto")s[tk]=1;});return Object.keys(s).slice(0,40);}
 function refreshStockQuotes(){
-  if(!FH_KEY)return;
+  if(!QUOTE_PROXY&&!FH_KEY)return;
   var syms=stockSyms();if(!syms.length)return;
   var done=0,changed=false;
   syms.forEach(function(tk){
-    fetch("https://finnhub.io/api/v1/quote?symbol="+encodeURIComponent(tk)+"&token="+encodeURIComponent(FH_KEY))
+    fetch(QUOTE_PROXY?(QUOTE_PROXY+"/?symbol="+encodeURIComponent(tk)):("https://finnhub.io/api/v1/quote?symbol="+encodeURIComponent(tk)+"&token="+encodeURIComponent(FH_KEY)))
       .then(function(r){return r.ok?r.json():null;})
       .then(function(q){if(q&&typeof q.c==="number"&&q.c>0){PRICES[tk]=Math.round(q.c*100)/100;STOCK_LIVE[tk]={price:PRICES[tk],chg:(typeof q.dp==="number"?q.dp:0)};changed=true;}})
       .catch(function(){})
