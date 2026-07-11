@@ -212,6 +212,33 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 ::-webkit-scrollbar-track{ background:var(--bg-primary); }
 ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:6px; border:2px solid var(--bg-primary); }
 ::-webkit-scrollbar-thumb:hover{ background:var(--accent-green); }
+
+/* ════════ Watchlist / Live Ticker Board ════════ */
+.wl-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.wl-add{display:flex;gap:6px;align-items:center;background:var(--bg-card);border:2px solid var(--border);border-radius:var(--radius);padding:3px 5px;}
+.wl-add input{background:transparent;border:none;color:var(--text-primary);font-family:var(--mono);text-transform:uppercase;outline:none;width:96px;padding:5px;letter-spacing:.5px;}
+.wl-add button{background:var(--accent-green);color:#0d1117;border:none;border-radius:6px;font-weight:700;padding:6px 12px;cursor:pointer;font-size:.8rem;}
+.wl-add button:hover{filter:brightness(1.1);}
+.wl-live{font-family:var(--mono);font-size:.72rem;color:var(--text-secondary);display:flex;align-items:center;gap:6px;margin-left:auto;}
+.wl-live .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 6px var(--accent-green);animation:wlblink 2s ease-in-out infinite;}
+@keyframes wlblink{0%,100%{opacity:1}50%{opacity:.25}}
+.wl-table{width:100%;border-collapse:collapse;font-family:var(--mono);}
+.wl-table th{text-align:right;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;font-family:-apple-system,"Segoe UI",sans-serif;}
+.wl-table th.l,.wl-table td.l{text-align:left;}
+.wl-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-size:.9rem;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.wl-table tbody tr:hover td{background:rgba(46,189,133,.04);}
+.wl-sym{font-weight:700;letter-spacing:.5px;}
+.wl-name{font-family:-apple-system,"Segoe UI",sans-serif;color:var(--text-secondary);font-size:.8rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+.wl-badge{font-family:var(--mono);font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.5px;}
+.wl-live-b{background:rgba(46,189,133,.16);color:var(--accent-bright);border:1px solid rgba(46,189,133,.4);}
+.wl-eod-b{background:rgba(110,118,129,.16);color:var(--text-secondary);border:1px solid var(--border);}
+.wl-cr{background:rgba(255,159,10,.16);color:#ff9f0a;border:1px solid rgba(255,159,10,.4);}
+.wl-x{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0 4px;line-height:1;}
+.wl-x:hover{color:var(--accent-red);}
+@keyframes flashUp{0%{background:rgba(46,189,133,.35)}100%{background:transparent}}
+@keyframes flashDown{0%{background:rgba(246,70,93,.35)}100%{background:transparent}}
+.wl-table tr.up td{animation:flashUp 1s ease-out;}
+.wl-table tr.down td{animation:flashDown 1s ease-out;}
 </style>
 </head>
 <body>
@@ -247,6 +274,7 @@ footer a{color:var(--accent-blue);text-decoration:none;}
   <div id="summary-banner"></div>
   <div class="tabs">
     <button class="tab active" data-tab="trades">Live Trades</button>
+    <button class="tab" data-tab="watchlist">Watchlist</button>
     <button class="tab" data-tab="strategies">How to Start</button>
     <button class="tab" data-tab="portfolio">My Portfolio<span class="pf-count" id="pf-count" style="display:none">0</span></button>
     <button class="tab" data-tab="sources">Data Sources</button>
@@ -315,8 +343,8 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     return {budget:s.budget||500,tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",open:s.open||{},paper:s.paper||[]};
-  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",open:{},paper:[]};}
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",watch:(s.watch||null),wsort:s.wsort||"chg",open:s.open||{},paper:s.paper||[]};
+  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",watch:null,wsort:"chg",open:{},paper:[]};}
 }
 var S=loadState();
 var PRICES={};
@@ -641,6 +669,79 @@ function renderPortfolio(){
   });
 }
 
+// ---- WATCHLIST / LIVE TICKER BOARD ----
+function feedTickers(){var seen={},out=[];trades.forEach(function(t){if(t.ticker&&!seen[t.ticker]){seen[t.ticker]=1;out.push(t.ticker);}});return out;}
+function getWatch(){return S.watch||feedTickers();}
+function tickInfo(tk){
+  var best=null;
+  trades.forEach(function(t){if(t.ticker===tk&&(!best||t.date>best.date))best=t;});
+  var isCrypto=!!CG_ID[tk]||(best&&best.asset==="crypto");
+  return {co:best?best.co:tk,asset:isCrypto?"crypto":"stock",entry:best?best.price:null};
+}
+function wchg(tk){
+  var info=tickInfo(tk),cur=curPrice(tk);
+  if(info.asset==="crypto"&&CRYPTO_LIVE[tk])return CRYPTO_LIVE[tk].chg24||0;
+  if(info.asset!=="crypto"&&cur!=null&&info.entry)return ((cur-info.entry)/info.entry)*100;
+  return 0;
+}
+function renderWatchlist(){
+  var body=id("tab-body");
+  var wl=getWatch().slice();
+  wl.sort(function(a,b){
+    if(S.wsort==="sym")return a.localeCompare(b);
+    if(S.wsort==="price")return (curPrice(b)||0)-(curPrice(a)||0);
+    if(S.wsort==="type"){var ta=tickInfo(a).asset,tb=tickInfo(b).asset;return ta===tb?a.localeCompare(b):(ta==="crypto"?-1:1);}
+    return Math.abs(wchg(b))-Math.abs(wchg(a));
+  });
+  var ago=LIVE_TS?Math.round((Date.now()-LIVE_TS)/1000)+"s ago":"connecting\u2026";
+  var rows=wl.map(function(tk){
+    var info=tickInfo(tk),cur=curPrice(tk),isCr=info.asset==="crypto";
+    var chg=null,chgLbl="";
+    if(isCr&&CRYPTO_LIVE[tk]){chg=CRYPTO_LIVE[tk].chg24;chgLbl="24h";}
+    else if(!isCr&&cur!=null&&info.entry){chg=((cur-info.entry)/info.entry)*100;chgLbl="disc";}
+    var prev=PREV_PX[tk];
+    var dir=(prev!=null&&cur!=null)?(cur>prev?"up":cur<prev?"down":""):"";
+    var chCls=chg==null?"":chg>=0?"pnl-pos":"pnl-neg";
+    var chTxt=chg==null?"&mdash;":(chg>=0?"+":"")+chg.toFixed(2)+'% <span style="color:var(--text-muted);font-size:.6rem">'+chgLbl+'</span>';
+    var last=cur!=null?"$"+cur.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"&mdash;";
+    var badge=isCr?'<span class="wl-badge wl-cr">CRYPTO</span> <span class="wl-badge wl-live-b">LIVE</span>':
+      (cur!=null?'<span class="wl-badge wl-eod-b">EOD</span>':'<span class="wl-badge wl-eod-b">NO DATA</span>');
+    return '<tr class="'+dir+'"><td class="l wl-sym">'+esc(tk)+'</td>'+
+      '<td class="l wl-name">'+esc(info.co)+'</td>'+
+      '<td>'+last+'</td>'+
+      '<td class="'+chCls+'">'+chTxt+'</td>'+
+      '<td>'+badge+'</td>'+
+      '<td><button class="wl-x" data-wlx="'+esc(tk)+'" title="Remove">&times;</button></td></tr>';
+  }).join("");
+  body.innerHTML='<p class="intro">Your live ticker board &mdash; <strong>crypto updates in real time</strong> (CoinGecko, every 30s) with 24h change; <strong>stocks show the latest end-of-day close</strong> from the feed with change since the whale disclosed it. Add any symbol to track it.</p>'+
+    '<div class="wl-toolbar">'+
+      '<div class="wl-add"><input id="wl-add-input" placeholder="ADD SYMBOL" maxlength="8"/><button id="wl-add-btn">+ Add</button></div>'+
+      '<select id="wl-sort" class="filter-select">'+
+        '<option value="chg"'+(S.wsort==="chg"?" selected":"")+'>Biggest Movers</option>'+
+        '<option value="sym"'+(S.wsort==="sym"?" selected":"")+'>Symbol A-Z</option>'+
+        '<option value="price"'+(S.wsort==="price"?" selected":"")+'>Price High-Low</option>'+
+        '<option value="type"'+(S.wsort==="type"?" selected":"")+'>Type (crypto first)</option>'+
+      '</select>'+
+      '<div class="wl-live"><span class="dot"></span>LIVE &bull; updated '+ago+'</div>'+
+    '</div>'+
+    (wl.length?'<div style="overflow-x:auto"><table class="wl-table"><thead><tr>'+
+      '<th class="l">Symbol</th><th class="l">Name</th><th>Last</th><th>Change</th><th>Type</th><th></th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>':
+      '<div class="empty"><div>&#128200;</div><p>Watchlist empty. Add a symbol above (e.g. BTC, AAPL, NVDA).</p></div>');
+  wl.forEach(function(tk){var c=curPrice(tk);if(c!=null)PREV_PX[tk]=c;});
+  bindWatch();
+}
+function bindWatch(){
+  var ai=id("wl-add-input"),ab=id("wl-add-btn");
+  function add(){var v=(ai.value||"").trim().toUpperCase();if(!v)return;var wl=getWatch().slice();if(wl.indexOf(v)===-1)wl.push(v);S.watch=wl;ai.value="";save();render();setTimeout(refreshCryptoQuotes,100);}
+  if(ab)ab.addEventListener("click",add);
+  if(ai)ai.addEventListener("keydown",function(e){if(e.key==="Enter")add();});
+  var ss=id("wl-sort");if(ss)ss.addEventListener("change",function(e){S.wsort=e.target.value;save();render();});
+  document.querySelectorAll("[data-wlx]").forEach(function(b){
+    b.addEventListener("click",function(e){var tk=e.currentTarget.getAttribute("data-wlx");S.watch=getWatch().filter(function(x){return x!==tk;});save();render();});
+  });
+}
+
 // ---- MAIN RENDER ----
 function render(){
   banner();
@@ -649,6 +750,7 @@ function render(){
   if(S.tab==="trades")renderTrades();
   else if(S.tab==="strategies")renderStrategies();
   else if(S.tab==="portfolio")renderPortfolio();
+  else if(S.tab==="watchlist")renderWatchlist();
   else renderSources();
   updatePfBadge();
   save();
@@ -721,21 +823,25 @@ function loadLiveData(){
 
 // ---- #2 LIVE CRYPTO QUOTES (CoinGecko, browser-side, ~60s) ----
 var CG_ID={BTC:"bitcoin",ETH:"ethereum",BNB:"binancecoin",SOL:"solana",XRP:"ripple",ADA:"cardano",DOGE:"dogecoin",AVAX:"avalanche-2",LINK:"chainlink",DOT:"polkadot"};
+var CRYPTO_LIVE={},PREV_PX={},LIVE_TS=0;
 function refreshCryptoQuotes(){
   var syms={};
   trades.forEach(function(t){if(t.asset==="crypto"&&CG_ID[t.ticker])syms[t.ticker]=CG_ID[t.ticker];});
+  getWatch().forEach(function(tk){if(CG_ID[tk])syms[tk]=CG_ID[tk];});
   var ids=[];for(var k in syms)ids.push(syms[k]);
   if(!ids.length)return;
-  fetch("https://api.coingecko.com/api/v3/simple/price?ids="+ids.join(",")+"&vs_currencies=usd")
+  fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+ids.join(",")+"&per_page=250")
     .then(function(r){return r.ok?r.json():null;})
     .then(function(d){
-      if(!d)return;
+      if(!d||!d.length)return;
+      var id2sym={};for(var s2 in syms)id2sym[syms[s2]]=s2;
       var changed=false;
-      for(var sym in syms){var v=d[syms[sym]]&&d[syms[sym]].usd;if(typeof v==="number"&&v>0){PRICES[sym]=Math.round(v*100)/100;changed=true;}}
+      d.forEach(function(c){var sym=id2sym[c.id];if(!sym)return;var v=c.current_price;if(typeof v==="number"&&v>0){PRICES[sym]=Math.round(v*100)/100;CRYPTO_LIVE[sym]={price:PRICES[sym],chg24:(c.price_change_percentage_24h||0)};changed=true;}});
       if(!changed)return;
-      var sqEl=id("sq");
-      var typing=sqEl&&document.activeElement===sqEl;
-      if((S.tab==="trades"&&!typing)||S.tab==="portfolio")render();
+      LIVE_TS=Date.now();
+      var sqEl=id("sq"),typing=sqEl&&document.activeElement===sqEl;
+      var wa=id("wl-add-input"),typingW=wa&&document.activeElement===wa;
+      if((S.tab==="trades"&&!typing)||S.tab==="portfolio"||(S.tab==="watchlist"&&!typingW))render();
       var st=id("crypto-live");if(st)st.textContent="\u20bf live";
     }).catch(function(){});
 }
@@ -745,7 +851,7 @@ initDisc();
 render();
 loadLiveData();
 setTimeout(refreshCryptoQuotes,1500);
-setInterval(refreshCryptoQuotes,60000);
+setInterval(refreshCryptoQuotes,30000);
 
 // ---- PWA: register service worker (only over http/https, not file://) ----
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){

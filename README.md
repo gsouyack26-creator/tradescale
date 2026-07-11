@@ -86,3 +86,6 @@ npm run build
 
 ## License
 MIT
+
+## Watchlist (live ticker board)
+A thinkorswim-style tab: crypto ticks live via CoinGecko (30s, 24h change, row flash), stocks show latest end-of-day close from the feed with change since disclosed. Add/remove any symbol; list persists in your browser.
