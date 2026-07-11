@@ -997,8 +997,10 @@ function refreshCryptoQuotes(){
 }
 
 // ---- LIVE STOCK QUOTES (Finnhub, browser-side, opt-in free key) ----
+// Public free-tier Finnhub key, intentionally client-side for zero-config live stock quotes.
+var FH_DEFAULT="d99934pr01qssj1201ogd99934pr01qssj1201p0";
 var STOCK_LIVE={},FH_KEY="";
-try{FH_KEY=localStorage.getItem("ts_fhkey")||"";}catch(e){}
+try{FH_KEY=localStorage.getItem("ts_fhkey")||FH_DEFAULT;}catch(e){FH_KEY=FH_DEFAULT;}
 function setFhKey(k){FH_KEY=(k||"").trim();try{if(FH_KEY)localStorage.setItem("ts_fhkey",FH_KEY);else localStorage.removeItem("ts_fhkey");}catch(e){}}
 function stockSyms(){var s={};getWatch().forEach(function(tk){var i=tickInfo(tk);if(i.asset!=="crypto")s[tk]=1;});return Object.keys(s).slice(0,40);}
 function refreshStockQuotes(){
