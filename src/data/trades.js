@@ -168,7 +168,7 @@ export const smallStackStrategies = [
     description: "Buy and literally forget. Pick 5-10 quality companies, buy fractional shares monthly, never sell for 10+ years.",
     steps: [
       "Open Fidelity/Schwab account (no minimums)",
-      "Set up 0-50/week auto-invest into VOO (S&P 500 ETF)",
+      "Set up $0-$50/week auto-invest into VOO (S&P 500 ETF)",
       "Add individual stocks only after 6 months of consistent saving",
       "Never check more than once a month",
     ],
@@ -193,7 +193,7 @@ export const smallStackStrategies = [
     risk: "medium",
     description: "Sell cash-secured puts on stocks you want to own. If assigned, sell covered calls. Generates 1-3% monthly income.",
     steps: [
-      "Find stocks under 5 you would own (Ford, SOFI, PLTR)",
+      "Find stocks under $5 you would own (Ford, SOFI, PLTR)",
       "Sell 1 cash-secured put at a strike you like (need 100x strike in cash)",
       "If assigned, sell covered calls above your cost basis",
       "Repeat. Income compounds even in flat markets.",
@@ -204,13 +204,13 @@ export const smallStackStrategies = [
     title: "0DTE Scalping (High Risk/High Reward)",
     minBudget: 100,
     risk: "high",
-    description: "Day-trade 0DTE SPY/QQQ options for quick 20-50% gains. What top traders do with millions, you do with 0-200.",
+    description: "Day-trade 0DTE SPY/QQQ options for quick 20-50% gains. What top traders do with millions, you do with $0-$200.",
     steps: [
       "Only trade first 30 min and last 30 min of market",
       "Buy ATM calls/puts on SPY based on momentum",
       "Take profit at 20-30% gain. Hard stop at -50%.",
       "MAX 1 trade per day. NEVER revenge trade.",
-      "This is gambling with an edge -- never use rent money",
+      "This is gambling with an edge — never use rent money",
     ],
   },
   {
@@ -221,9 +221,9 @@ export const smallStackStrategies = [
     description: "Build a passive income machine. Buy dividend aristocrats, reinvest all dividends. Snowball grows exponentially over time.",
     steps: [
       "Start with SCHD or VYM (dividend ETFs) for instant diversification",
-      "Add 5-100/month consistently",
+      "Add $5-$100/month consistently",
       "Enable DRIP (dividend reinvestment)",
-      "After K, add individual dividend kings (JNJ, KO, PG, O)",
+      "After $1K, add individual dividend kings (JNJ, KO, PG, O)",
       "Goal: dividends cover one bill, then two, then all.",
     ],
   },
