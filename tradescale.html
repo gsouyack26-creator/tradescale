@@ -439,6 +439,13 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .bt-stat .v{font-size:1.2rem;font-weight:800}
 .bt-stat .l{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-top:3px}
 .bt-tr{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.82rem}
+
+/* ==== Wave 8: equity curve ==== */
+.eq-wrap{grid-column:1/-1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:2px}
+.eq-hd{display:flex;justify-content:space-between;align-items:baseline;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px}
+.eq-hd b{font-size:.95rem;color:var(--text);text-transform:none;letter-spacing:0}
+.eq-svg{width:100%;height:auto;display:block}
+.eq-empty{font-size:.78rem;color:var(--text-muted);padding:6px 0}
 </style>
 </head>
 <body>
@@ -672,6 +679,29 @@ function removePaper(pid){
   _sDirty=true;save(true);updatePfBadge();
 }
 
+function pfHistory(){try{var h=JSON.parse(localStorage.getItem("ts_pf_hist")||"[]");return Array.isArray(h)?h.filter(function(x){return x&&typeof x.v==="number"&&x.d;}):[];}catch(e){return [];}}
+function snapshotPortfolio(){
+  if(!S.paper.length)return;
+  var v=0;S.paper.forEach(function(p){v+=posPnl(p).val;});
+  if(!(v>0))return;
+  var d=new Date().toISOString().slice(0,10),h=pfHistory();
+  if(h.length&&h[h.length-1].d===d)h[h.length-1].v=v;else h.push({d:d,v:v});
+  if(h.length>180)h=h.slice(h.length-180);
+  try{localStorage.setItem("ts_pf_hist",JSON.stringify(h));}catch(e){}
+}
+function maxDrawdown(vals){var peak=-Infinity,mdd=0;for(var i=0;i<vals.length;i++){if(vals[i]>peak)peak=vals[i];if(peak>0){var dd=(peak-vals[i])/peak;if(dd>mdd)mdd=dd;}}return mdd*100;}
+function sharpeEst(vals){if(vals.length<3)return null;var r=[];for(var i=1;i<vals.length;i++){if(vals[i-1]>0)r.push((vals[i]-vals[i-1])/vals[i-1]);}if(r.length<2)return null;var m=r.reduce(function(a,b){return a+b;},0)/r.length;var vv=r.reduce(function(a,b){return a+Math.pow(b-m,2);},0)/r.length,sd=Math.sqrt(vv);if(sd===0)return null;return (m/sd)*Math.sqrt(252);}
+function equityCurveSvg(h){
+  if(h.length<2)return '<div class="eq-wrap"><div class="eq-hd">Equity Curve</div><div class="eq-empty">Building history\u2026 your portfolio value is snapshotted once per day. Come back tomorrow to see the curve.</div></div>';
+  var W=560,H=96,pad=6,vs=h.map(function(x){return x.v;});
+  var mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs);if(mx===mn)mx=mn+1;
+  var n=h.length,xOf=function(i){return pad+(n<=1?0:i/(n-1)*(W-2*pad));},yOf=function(v){return pad+(1-(v-mn)/(mx-mn))*(H-2*pad);};
+  var up=vs[n-1]>=vs[0],col=up?"#2ebd85":"#ef4f6b",d="";
+  for(var i=0;i<n;i++)d+=(i?"L":"M")+xOf(i).toFixed(1)+" "+yOf(vs[i]).toFixed(1)+" ";
+  var area="M"+xOf(0).toFixed(1)+" "+(H-pad)+" "+d.replace(/^M/,"L")+"L"+xOf(n-1).toFixed(1)+" "+(H-pad)+" Z";
+  var chg=vs[0]>0?((vs[n-1]-vs[0])/vs[0]*100):0,cs=chg>=0?"+":"";
+  return '<div class="eq-wrap"><div class="eq-hd"><b>Equity Curve</b> <span>'+n+' snapshots &bull; <span class="'+(up?"pnl-pos":"pnl-neg")+'">'+cs+chg.toFixed(1)+'%</span></span></div><svg viewBox="0 0 '+W+' '+H+'" class="eq-svg" preserveAspectRatio="none" role="img" aria-label="Portfolio value over time"><path d="'+area+'" fill="'+col+'" opacity=".12"/><path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.5"/></svg></div>';
+}
 function posPnl(pos){
   var cur=curPrice(pos.ticker);
   if(cur===null)cur=pos.entry;
@@ -1055,6 +1085,10 @@ function riskMetrics(){
     '<div class="risk-cell"><div class="rc-v">'+conc3.toFixed(0)+'%</div><div class="rc-l">Top-3 Concentration</div></div>'+
     '<div class="risk-cell"><div class="rc-v">'+longs+'L / '+shorts+'S</div><div class="rc-l">Long / Short</div></div>'+
     '<div class="risk-cell"><div class="rc-v">'+crP.toFixed(0)+'% / '+stP.toFixed(0)+'%</div><div class="rc-l">Crypto / Stock</div><div class="risk-bar"><i style="width:'+crP.toFixed(1)+'%;background:#f5a623"></i><i style="width:'+stP.toFixed(1)+'%;background:#4f8ff0"></i></div></div>'+
+    (function(){var vs=pfHistory().map(function(x){return x.v;});var mdd=maxDrawdown(vs),sh=sharpeEst(vs);
+      var ddCell='<div class="risk-cell"><div class="rc-v '+(mdd>=20?"pnl-neg":"")+'">'+(vs.length>=2?"-"+mdd.toFixed(1)+"%":"\u2013")+'</div><div class="rc-l">Max Drawdown</div></div>';
+      var shCell='<div class="risk-cell"><div class="rc-v '+(sh!=null&&sh>=0?"pnl-pos":sh!=null?"pnl-neg":"")+'">'+(sh!=null?sh.toFixed(2):"\u2013")+'</div><div class="rc-l">Sharpe (ann.)</div></div>';
+      return ddCell+shCell;})()+
   '</div>';
 }
 function renderPortfolio(){
@@ -1115,7 +1149,7 @@ function renderPortfolio(){
     '<div class="pf-stat"><div class="v">'+wins+'/'+S.paper.length+'</div><div class="l">Winners</div></div>'+
   '</div>';
   body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
-    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+'</div>':'')+cards+
+    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>':'')+cards+
     '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
   var exp=id("export-csv");
   if(exp)exp.addEventListener("click",exportCsv);
@@ -1277,6 +1311,7 @@ function render(){
   else if(S.tab==="watchlist")renderWatchlist();
   else renderSources();
   updatePfBadge();
+  snapshotPortfolio();
   save();
   writeHash();
 }
