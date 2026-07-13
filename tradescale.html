@@ -161,6 +161,14 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 /* ════════ Quant Terminal Restyle ════════ */
 :root{ --accent-bright:#3dd4a0;
   --mono:"SF Mono","SFMono-Regular","Roboto Mono",Consolas,"Courier New",monospace; }
+[data-theme="bloomberg"]{--bg-primary:#080808;--bg-secondary:#111;--bg-card:#161616;--accent-green:#FF8C00;--accent-bright:#FFA500;--accent-blue:#FFD700;--accent-gold:#FFC000;--accent-red:#ff5252;--text-primary:#FFB300;--text-secondary:#CC8800;--text-muted:#886600;--border:#2a2000;}
+[data-theme="void"]{--bg-primary:#070710;--bg-secondary:#0d0d1a;--bg-card:#111122;--accent-green:#00ffcc;--accent-bright:#00ffcc;--accent-blue:#7c5cfc;--accent-gold:#c8a2f8;--accent-red:#ff5c8a;--text-primary:#e0d8ff;--text-secondary:#8888bb;--text-muted:#5555aa;--border:#1e1e38;}
+[data-density="compact"] .wl-table td{padding:4px 8px;font-size:.8rem;}
+[data-density="compact"] .wl-table th{padding:5px 8px;}
+[data-density="compact"] .card{padding:14px;}
+[data-density="compact"] .pos-card{padding:12px;margin-bottom:8px;}
+[data-density="compact"] .tab{padding:9px 14px;font-size:.8rem;}
+[data-density="compact"] .summary-stat .val{font-size:1rem;}
 
 /* Monospace tabular figures — the quant signature */
 .dv,.summary-stat .val,.pf-stat .v,.pos-grid .pv,.si strong,.quote-row,
@@ -289,6 +297,22 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .wl-actions{white-space:nowrap;}
 .wl-bell{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:.9rem;padding:0 2px;min-width:34px;min-height:44px;opacity:.55;}
 .wl-bell:hover{opacity:1;}
+.wl-scroll{overflow-x:auto;max-height:65vh;overflow-y:auto;}
+.wl-table thead th{position:sticky;top:0;background:var(--bg-secondary);z-index:5;box-shadow:0 1px 0 var(--border);}
+.wl-hdr{cursor:pointer;user-select:none;}
+.wl-hdr:hover{color:var(--accent-bright);}
+.wl-hdr-on{color:var(--accent-bright);}
+.pro-toggles{display:flex;align-items:center;gap:6px;margin-left:14px;}
+.pt-btn{background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;cursor:pointer;width:30px;height:30px;font-size:.9rem;}
+.pt-btn:hover{border-color:var(--accent-bright);}
+.pt-swatch{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);cursor:pointer;padding:0;}
+.pt-swatch:hover{border-color:#fff;}
+.sw-quant{background:#2ebd85;}.sw-bloom{background:#FFA500;}.sw-void{background:#7c5cfc;}
+#ticker-tape{overflow:hidden;background:var(--bg-secondary);border-bottom:1px solid var(--border);height:26px;}
+.tape-inner{display:flex;animation:tape-scroll 60s linear infinite;white-space:nowrap;}
+.tape-inner:hover{animation-play-state:paused;}
+@keyframes tape-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tape-item{padding:0 18px;font-family:var(--mono);font-size:.7rem;line-height:26px;border-right:1px solid var(--border);}
 @keyframes flashUp{0%{background:rgba(46,189,133,.35)}100%{background:transparent}}
 @keyframes flashDown{0%{background:rgba(246,70,93,.35)}100%{background:transparent}}
 .wl-table tr.up td{animation:flashUp 1s ease-out;}
@@ -304,6 +328,8 @@ html.ts-acc #main-app{ display:block !important; }
   .card:hover,.pos-card:hover{ transform:none; }
   .wl-live .dot{ animation:none; opacity:1; }
   .wl-table tr.up td,.wl-table tr.down td{ animation:none; }
+  .tape-inner{ animation:none; }
+  #ticker-tape{ overflow-x:auto; }
 }
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .skip-link{position:absolute;top:-40px;left:6px;background:var(--accent-green);color:#0d1117;padding:8px 16px;border-radius:6px;font-weight:700;z-index:10000;transition:top .15s;text-decoration:none;}
@@ -350,7 +376,14 @@ html.ts-acc #main-app{ display:block !important; }
       <span style="color:var(--accent-gold);font-size:1.1rem">$</span>
       <input type="number" id="budget-input" min="0" step="50" value="500"/>
     </div>
+    <div class="pro-toggles">
+      <button class="pt-btn" id="density-btn" title="Toggle density" aria-label="Toggle compact/comfortable density">&#9636;</button>
+      <button class="pt-swatch sw-quant" data-theme="quant" title="Quant Dark theme" aria-label="Quant Dark theme"></button>
+      <button class="pt-swatch sw-bloom" data-theme="bloomberg" title="Bloomberg Terminal theme" aria-label="Bloomberg Terminal theme"></button>
+      <button class="pt-swatch sw-void" data-theme="void" title="Void theme" aria-label="Void theme"></button>
+    </div>
   </header>
+  <div id="ticker-tape" aria-hidden="true"><div class="tape-inner" id="tape-inner"></div></div>
   <div id="summary-banner"></div>
   <div class="tabs" role="tablist" aria-label="TradeScale navigation">
     <button class="tab active" role="tab" id="tab-btn-trades" aria-selected="true" aria-controls="tab-body" data-tab="trades">Live Trades</button>
@@ -423,8 +456,8 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     return {budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:(Array.isArray(s.paper)?s.paper:[])};
-  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",open:{},paper:[]};}
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",density:s.density||"comfortable",theme:s.theme||"quant",open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:(Array.isArray(s.paper)?s.paper:[])};
+  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",open:{},paper:[]};}
 }
 var S=loadState();
 var PRICES={};
@@ -970,14 +1003,21 @@ function wchg(tk){
   if(info.asset!=="crypto"&&cur!=null&&info.entry)return ((cur-info.entry)/info.entry)*100;
   return 0;
 }
+function wlHdr(lbl,key,cls){
+  var on=S.wsort===key;var ar=on?(S.wsortDir==="asc"?" \u25B2":" \u25BC"):"";
+  var as=on?(S.wsortDir==="asc"?"ascending":"descending"):"none";
+  return '<th class="'+(cls?cls+" ":"")+'wl-hdr'+(on?" wl-hdr-on":"")+'" scope="col" data-wsort="'+key+'" tabindex="0" role="button" aria-sort="'+as+'">'+lbl+ar+'</th>';
+}
 function renderWatchlist(){
   var body=id("tab-body");
   var wl=getWatch().slice();
   wl.sort(function(a,b){
-    if(S.wsort==="sym")return a.localeCompare(b);
-    if(S.wsort==="price")return (curPrice(b)||0)-(curPrice(a)||0);
-    if(S.wsort==="type"){var ta=tickInfo(a).asset,tb=tickInfo(b).asset;return ta===tb?a.localeCompare(b):(ta==="crypto"?-1:1);}
-    return Math.abs(wchg(b))-Math.abs(wchg(a));
+    var r;
+    if(S.wsort==="sym")r=a.localeCompare(b);
+    else if(S.wsort==="price")r=(curPrice(b)||0)-(curPrice(a)||0);
+    else if(S.wsort==="type"){var ta=tickInfo(a).asset,tb=tickInfo(b).asset;r=ta===tb?a.localeCompare(b):(ta==="crypto"?-1:1);}
+    else r=Math.abs(wchg(b))-Math.abs(wchg(a));
+    return r*(S.wsortDir==="asc"?-1:1);
   });
   var ago=LIVE_TS?Math.round((Date.now()-LIVE_TS)/1000)+"s ago":"connecting\u2026";
   var _al=loadAlerts(),alertTray="";
@@ -1027,8 +1067,8 @@ function renderWatchlist(){
      FH_KEY?
       '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes active via Finnhub. <button id="fh-clear" class="linkbtn">Remove key</button></div>':
       '<div class="wl-fh">Stocks show end-of-day close. Want <strong>real-time</strong> stock quotes too? <a href="https://finnhub.io/register" target="_blank" rel="noopener">Grab a free Finnhub key</a>, paste it here: <input id="fh-key-input" placeholder="Finnhub API key" maxlength="64" autocomplete="off"/><button id="fh-save">Go Live</button> <span style="font-size:.7rem">(stored only in your browser, never uploaded)</span></div>')+alertTray+
-    (wl.length?'<div style="overflow-x:auto"><table class="wl-table" aria-label="Live price watchlist"><thead><tr>'+
-      '<th class="l" scope="col">Symbol</th><th class="l" scope="col">Name</th><th scope="col">Last</th><th scope="col">Change</th><th scope="col">7d</th><th scope="col">Type</th><th scope="col"><span class="visually-hidden">Remove</span></th>'+
+    (wl.length?'<div class="wl-scroll"><table class="wl-table" aria-label="Live price watchlist"><thead><tr>'+
+      ''+wlHdr("Symbol","sym","l")+'<th class="l" scope="col">Name</th>'+wlHdr("Last","price","")+wlHdr("Change","chg","")+'<th scope="col">7d</th>'+wlHdr("Type","type","")+'<th scope="col"><span class="visually-hidden">Actions</span></th>'+''+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>':
       '<div class="empty"><div>&#128200;</div><p>Watchlist empty. Add a symbol above (e.g. BTC, AAPL, NVDA).</p></div>');
   wl.forEach(function(tk){var c=curPrice(tk);if(c!=null)PREV_PX[tk]=c;});
@@ -1065,11 +1105,30 @@ function bindWatch(){
   });
   var _alc=document.querySelector(".wl-alert-card");
   if(_alc)_alc.addEventListener("toggle",function(){S.open=S.open||{};S.open.__al=_alc.open;_sDirty=true;save();});
+  document.querySelectorAll("[data-wsort]").forEach(function(b){
+    function doSort(){var k=b.getAttribute("data-wsort");if(S.wsort===k)S.wsortDir=(S.wsortDir==="asc"?"desc":"asc");else{S.wsort=k;S.wsortDir="desc";}_sDirty=true;save();render();}
+    b.addEventListener("click",doSort);
+    b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();doSort();}});
+  });
+}
+
+function updateTape(){
+  var el=id("tape-inner");if(!el)return;
+  var items=getWatch().map(function(tk){var c=curPrice(tk);if(c==null)return "";
+    var info=tickInfo(tk),chg=null;
+    if(info.asset==="crypto"&&CRYPTO_LIVE[tk])chg=CRYPTO_LIVE[tk].chg24;else if(STOCK_LIVE[tk])chg=STOCK_LIVE[tk].chg;
+    var cc=chg==null?"":chg>=0?"pnl-pos":"pnl-neg";
+    var ct=chg==null?"":(chg>=0?"\u25B2":"\u25BC")+Math.abs(chg).toFixed(1)+"%";
+    return '<span class="tape-item"><strong>'+esc(tk)+'</strong> $'+c.toLocaleString(undefined,{maximumFractionDigits:2})+' <span class="'+cc+'">'+ct+'</span></span>';
+  }).filter(Boolean);
+  el.innerHTML=items.length?(items.join("")+items.join("")):"";
 }
 
 // ---- MAIN RENDER ----
 function render(){
+  var _de=document.documentElement;if(_de){_de.setAttribute("data-density",S.density);_de.setAttribute("data-theme",S.theme);}
   banner();
+  updateTape();
   document.querySelectorAll(".tab").forEach(function(b){var on=b.getAttribute("data-tab")===S.tab;b.classList.toggle("active",on);b.setAttribute("aria-selected",on?"true":"false");b.setAttribute("tabindex",on?"0":"-1");});var _tb=id("tab-body");if(_tb)_tb.setAttribute("aria-labelledby","tab-btn-"+S.tab);
   id("budget-input").value=S.budget;
   if(S.tab==="trades")renderTrades();
@@ -1139,6 +1198,8 @@ document.querySelectorAll("[data-tab]").forEach(function(b){
     S.tab=tabs[next].getAttribute("data-tab");render();tabs[next].focus();
   });
 });
+var _dbn=id("density-btn");if(_dbn)_dbn.addEventListener("click",function(){S.density=S.density==="compact"?"comfortable":"compact";_sDirty=true;render();});
+document.querySelectorAll("[data-theme]").forEach(function(b){b.addEventListener("click",function(e){S.theme=e.currentTarget.getAttribute("data-theme");_sDirty=true;render();});});
 id("budget-input").addEventListener("input",function(e){
   S.budget=Math.max(0,Number(e.target.value)||0);_sDirty=true;render();id("budget-input").focus();
 });
