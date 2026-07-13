@@ -903,7 +903,7 @@ function renderWatchlist(){
       '<td class="l wl-name">'+esc(info.co)+'</td>'+
       '<td>'+last+'</td>'+
       '<td class="'+chCls+'">'+chTxt+'</td>'+
-      '<td class="wl-spark">'+((isCr&&CRYPTO_LIVE[tk]&&CRYPTO_LIVE[tk].spark)?sparkSvg(CRYPTO_LIVE[tk].spark,CRYPTO_LIVE[tk].chg24>=0):'<span class="wl-nospark">&mdash;</span>')+'</td>'+
+      '<td class="wl-spark">'+(function(){if(isCr&&CRYPTO_LIVE[tk]&&CRYPTO_LIVE[tk].spark){var _sp=sparkSvg(CRYPTO_LIVE[tk].spark,CRYPTO_LIVE[tk].chg24>=0);return _sp||'<span class="wl-nospark">&mdash;</span>';}return '<span class="wl-nospark">&mdash;</span>';}())+'</td>'+
       '<td>'+badge+'</td>'+
       '<td><button class="wl-x" data-wlx="'+esc(tk)+'" title="Remove">&times;</button></td></tr>';
   }).join("");
