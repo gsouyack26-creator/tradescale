@@ -464,6 +464,16 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .scan-table tbody tr:hover{background:var(--bg-secondary)}
 .scan-sym{font-weight:800}
 .scan-sig{display:inline-block;font-size:.62rem;padding:1px 5px;border-radius:4px;background:var(--bg-card);border:1px solid var(--border);margin-left:3px;text-transform:uppercase;letter-spacing:.03em}
+
+/* ==== Wave 10: watchlist column chooser ==== */
+.wl-cols-menu{position:relative}
+.wl-cols-menu>summary{list-style:none;cursor:pointer;background:var(--bg-secondary);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:.9rem;color:var(--text-muted);user-select:none}
+.wl-cols-menu>summary::-webkit-details-marker{display:none}
+.wl-cols-menu>summary:hover{color:var(--text)}
+.wl-cols-pop{position:absolute;z-index:20;top:110%;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px;min-width:150px}
+.wl-cols-pop label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:.82rem;cursor:pointer}
+.wl-cols-pop label:hover{background:var(--bg-secondary)}
+.wl-cols-pop input{accent-color:var(--accent-blue,#4f8ff0)}
 </style>
 </head>
 <body>
@@ -577,8 +587,8 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     return {budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",density:s.density||"comfortable",theme:s.theme||"quant",open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:(Array.isArray(s.paper)?s.paper:[])};
-  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",open:{},paper:[]};}
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",density:s.density||"comfortable",theme:s.theme||"quant",wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:(Array.isArray(s.paper)?s.paper:[])};
+  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",wlCols:{name:true,spark:true,type:true},open:{},paper:[]};}
 }
 var S=loadState();
 var PRICES={};
@@ -1202,6 +1212,7 @@ function wlHdr(lbl,key,cls){
 }
 function renderWatchlist(){
   var body=id("tab-body");
+  var C=(S.wlCols&&typeof S.wlCols==="object")?S.wlCols:{name:true,spark:true,type:true};
   var wl=getWatch().slice();
   wl.sort(function(a,b){
     var r;
@@ -1235,11 +1246,11 @@ function renderWatchlist(){
       (STOCK_LIVE[tk]?'<span class="wl-badge wl-eod-b">STOCK</span> <span class="wl-badge wl-live-b">LIVE</span>':
        (cur!=null?'<span class="wl-badge wl-eod-b">EOD</span>':'<span class="wl-badge wl-eod-b">NO DATA</span>'));
     return '<tr class="'+dir+'" data-ctx="'+esc(tk)+'"><td class="l wl-sym">'+esc(tk)+'</td>'+
-      '<td class="l wl-name">'+esc(info.co)+'</td>'+
+      (C.name?'<td class="l wl-name">'+esc(info.co)+'</td>':'')+
       '<td>'+last+'</td>'+
       '<td class="'+chCls+'">'+chTxt+'</td>'+
-      '<td class="wl-spark">'+(function(){if(isCr&&CRYPTO_LIVE[tk]&&CRYPTO_LIVE[tk].spark){var _sp=sparkSvg(CRYPTO_LIVE[tk].spark,CRYPTO_LIVE[tk].chg24>=0);return _sp||'<span class="wl-nospark">&mdash;</span>';}return '<span class="wl-nospark">&mdash;</span>';}())+'</td>'+
-      '<td>'+badge+'</td>'+
+      (C.spark?'<td class="wl-spark">'+(function(){if(isCr&&CRYPTO_LIVE[tk]&&CRYPTO_LIVE[tk].spark){var _sp=sparkSvg(CRYPTO_LIVE[tk].spark,CRYPTO_LIVE[tk].chg24>=0);return _sp||'<span class="wl-nospark">&mdash;</span>';}return '<span class="wl-nospark">&mdash;</span>';}())+'</td>':'')+
+      (C.type?'<td>'+badge+'</td>':'')+
       '<td class="wl-actions"><button class="wl-bell" data-bell="'+esc(tk)+'" title="Set price alert">\uD83D\uDD14</button><button class="wl-x" data-wlx="'+esc(tk)+'" title="Remove">&times;</button></td></tr>';
   }).join("");
   body.innerHTML='<p class="intro">Your live ticker board &mdash; <strong>crypto updates in real time</strong> (CoinGecko, every 30s) with 24h change; <strong>stocks show the latest end-of-day close</strong> from the feed with change since the whale disclosed it. Add any symbol to track it.</p>'+
@@ -1252,7 +1263,7 @@ function renderWatchlist(){
         '<option value="price"'+(S.wsort==="price"?" selected":"")+'>Price High-Low</option>'+
         '<option value="type"'+(S.wsort==="type"?" selected":"")+'>Type (crypto first)</option>'+
       '</select>'+
-      '<div class="wl-live"><span class="dot"></span>LIVE &bull; updated '+ago+'</div>'+
+      '<details class="wl-cols-menu"><summary title="Choose columns" aria-label="Choose columns">&#9881;</summary><div class="wl-cols-pop">'+'<label><input type="checkbox" data-wlcol="name"'+(C.name?' checked':'')+'/> Company name</label>'+'<label><input type="checkbox" data-wlcol="spark"'+(C.spark?' checked':'')+'/> 7-day sparkline</label>'+'<label><input type="checkbox" data-wlcol="type"'+(C.type?' checked':'')+'/> Type badge</label>'+'</div></details>'+'<div class="wl-live"><span class="dot"></span>LIVE &bull; updated '+ago+'</div>'+
     '</div>'+
     (QUOTE_PROXY?
       '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes stream automatically &mdash; no key or setup needed.</div>':
@@ -1260,7 +1271,7 @@ function renderWatchlist(){
       '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes active via Finnhub. <button id="fh-clear" class="linkbtn">Remove key</button></div>':
       '<div class="wl-fh">Stocks show end-of-day close. Want <strong>real-time</strong> stock quotes too? <a href="https://finnhub.io/register" target="_blank" rel="noopener">Grab a free Finnhub key</a>, paste it here: <input id="fh-key-input" placeholder="Finnhub API key" maxlength="64" autocomplete="off"/><button id="fh-save">Go Live</button> <span style="font-size:.7rem">(stored only in your browser, never uploaded)</span></div>')+alertTray+
     (wl.length?'<div class="wl-scroll"><table class="wl-table" aria-label="Live price watchlist"><thead><tr>'+
-      ''+wlHdr("Symbol","sym","l")+'<th class="l" scope="col">Name</th>'+wlHdr("Last","price","")+wlHdr("Change","chg","")+'<th scope="col">7d</th>'+wlHdr("Type","type","")+'<th scope="col"><span class="visually-hidden">Actions</span></th>'+''+
+      ''+wlHdr("Symbol","sym","l")+(C.name?'<th class="l" scope="col">Name</th>':'')+wlHdr("Last","price","")+wlHdr("Change","chg","")+(C.spark?'<th scope="col">7d</th>':'')+(C.type?wlHdr("Type","type",""):'')+'<th scope="col"><span class="visually-hidden">Actions</span></th>'+''+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>':
       '<div class="empty"><div>&#128200;</div><p>Watchlist empty. Add a symbol above (e.g. BTC, AAPL, NVDA).</p></div>');
   wl.forEach(function(tk){var c=curPrice(tk);if(c!=null)PREV_PX[tk]=c;});
@@ -1272,6 +1283,7 @@ function bindWatch(){
   if(ab)ab.addEventListener("click",add);
   if(ai)ai.addEventListener("keydown",function(e){if(e.key==="Enter")add();});
   var ss=id("wl-sort");if(ss)ss.addEventListener("change",function(e){S.wsort=e.target.value;_sDirty=true;save();render();});
+  document.querySelectorAll("[data-wlcol]").forEach(function(cb){cb.addEventListener("change",function(e){var k=e.currentTarget.getAttribute("data-wlcol");S.wlCols=(S.wlCols&&typeof S.wlCols==="object")?S.wlCols:{name:true,spark:true,type:true};S.wlCols[k]=e.currentTarget.checked;_sDirty=true;save();render();});});
   var fs=id("fh-save"),fi=id("fh-key-input"),fc=id("fh-clear");
   function saveFh(){setFhKey(fi?fi.value:"");render();setTimeout(refreshStockQuotes,120);}
   if(fs)fs.addEventListener("click",saveFh);
