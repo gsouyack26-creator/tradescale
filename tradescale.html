@@ -446,6 +446,24 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .eq-hd b{font-size:.95rem;color:var(--text);text-transform:none;letter-spacing:0}
 .eq-svg{width:100%;height:auto;display:block}
 .eq-empty{font-size:.78rem;color:var(--text-muted);padding:6px 0}
+
+/* ==== Wave 9: consensus scanner ==== */
+.scan-box{width:min(720px,95vw);max-height:92vh;overflow:auto}
+.scan-head{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--border)}
+.scan-title{font-size:1.15rem;font-weight:800}
+.scan-ctl{display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.scan-ctl label{display:flex;flex-direction:column;gap:3px;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.scan-ctl select,.scan-ctl input{background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 8px;font-size:.82rem;min-width:120px}
+.scan-body{padding:8px 18px 18px}
+.scan-count{font-size:.78rem;color:var(--text-muted);padding:8px 0}
+.scan-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.scan-table th{text-align:right;padding:6px 8px;color:var(--text-muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.scan-table th.l,.scan-table td.l{text-align:left}
+.scan-table td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--border)}
+.scan-table tr{cursor:pointer}
+.scan-table tbody tr:hover{background:var(--bg-secondary)}
+.scan-sym{font-weight:800}
+.scan-sig{display:inline-block;font-size:.62rem;padding:1px 5px;border-radius:4px;background:var(--bg-card);border:1px solid var(--border);margin-left:3px;text-transform:uppercase;letter-spacing:.03em}
 </style>
 </head>
 <body>
@@ -480,6 +498,7 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
     </div>
     <div class="pro-toggles">
       <button class="pt-btn" id="density-btn" title="Toggle density" aria-label="Toggle compact/comfortable density">&#9636;</button>
+      <button class="pt-btn" id="scan-btn" title="Consensus scanner" aria-label="Open consensus scanner">&#128269;</button>
       <button class="pt-swatch sw-quant" data-theme="quant" title="Quant Dark theme" aria-label="Quant Dark theme"></button>
       <button class="pt-swatch sw-bloom" data-theme="bloomberg" title="Bloomberg Terminal theme" aria-label="Bloomberg Terminal theme"></button>
       <button class="pt-swatch sw-void" data-theme="void" title="Void theme" aria-label="Void theme"></button>
@@ -1374,6 +1393,7 @@ document.querySelectorAll("[data-tab]").forEach(function(b){
   });
 });
 var _dbn=id("density-btn");if(_dbn)_dbn.addEventListener("click",function(){S.density=S.density==="compact"?"comfortable":"compact";_sDirty=true;render();});
+var _scb=id("scan-btn");if(_scb)_scb.addEventListener("click",openScanner);
 document.querySelectorAll("[data-theme]").forEach(function(b){b.addEventListener("click",function(e){S.theme=e.currentTarget.getAttribute("data-theme");_sDirty=true;render();});});
 id("budget-input").addEventListener("input",function(e){
   S.budget=Math.max(0,Number(e.target.value)||0);_sDirty=true;render();id("budget-input").focus();
@@ -1565,6 +1585,58 @@ var _drawerPrev=null;
 function allKnownTickers(){var set={};trades.forEach(function(t){if(t.ticker)set[t.ticker]=1;});Object.keys(CG_ID).forEach(function(k){set[k]=1;});getWatch().forEach(function(k){set[k]=1;});return Object.keys(set).sort();}
 function refreshSuggest(){var dl=id("tk-suggest");if(!dl)return;dl.innerHTML=allKnownTickers().map(function(tk){var i=trades.filter(function(t){return t.ticker===tk;})[0];return '<option value="'+esc(tk)+'">'+(i?esc(i.co):"")+'</option>';}).join("");}
 
+/* ==== Wave 9: consensus scanner ==== */
+var _scanOpts={minTraders:1,dir:"all",asset:"all",signal:"any",minValue:0,sort:"nt"};
+function runScanner(o){
+  o=o||_scanOpts;
+  var cons=consensus(),sig=signals(),sigMap={};sig.forEach(function(x){sigMap[x.ticker]=x.types;});
+  var valMap={},assetMap={};trades.forEach(function(t){if(!t.ticker)return;valMap[t.ticker]=(valMap[t.ticker]||0)+(t.value||0);if(t.asset==="crypto")assetMap[t.ticker]="crypto";else if(!assetMap[t.ticker])assetMap[t.ticker]="stock";});
+  var out=cons.map(function(e){return {ticker:e.ticker,co:e.co,nt:e.nt,net:e.net,buys:e.buys,sells:e.sells,val:valMap[e.ticker]||0,asset:CG_ID[e.ticker]?"crypto":(assetMap[e.ticker]||"stock"),signals:sigMap[e.ticker]||[]};});
+  if(o.minTraders>1)out=out.filter(function(x){return x.nt>=o.minTraders;});
+  if(o.dir==="buy")out=out.filter(function(x){return x.net>0;});
+  else if(o.dir==="sell")out=out.filter(function(x){return x.net<0;});
+  if(o.asset&&o.asset!=="all")out=out.filter(function(x){return x.asset===o.asset;});
+  if(o.signal&&o.signal!=="any")out=out.filter(function(x){return x.signals.indexOf(o.signal)>-1;});
+  if(o.minValue>0)out=out.filter(function(x){return x.val>=o.minValue;});
+  var k=o.sort||"nt";
+  out.sort(function(a,b){if(k==="val")return b.val-a.val;if(k==="net")return b.net-a.net;return (b.nt-a.nt)||(b.val-a.val);});
+  return out;
+}
+function scanResultsHtml(){
+  var res=runScanner(_scanOpts);
+  if(!res.length)return '<div class="scan-count">No tickers match. Loosen your criteria.</div>';
+  var rows=res.slice(0,60).map(function(r){
+    var nc=r.net>0?"pnl-pos":r.net<0?"pnl-neg":"",na=r.net>0?"&#9650;":r.net<0?"&#9660;":"&#8596;";
+    var sg=r.signals.slice(0,3).map(function(t){return '<span class="scan-sig">'+t.replace("_"," ").toLowerCase()+'</span>';}).join("");
+    return '<tr data-drawer="'+esc(r.ticker)+'"><td class="l"><span class="scan-sym">'+esc(r.ticker)+'</span> <span style="color:var(--text-muted);font-size:.72rem">'+esc(r.co||"")+'</span>'+sg+'</td>'+
+      '<td>'+(r.asset==="crypto"?"crypto":"stock")+'</td><td>'+r.nt+'</td><td class="'+nc+'">'+na+' '+r.buys+'B/'+r.sells+'S</td><td>'+fmt(r.val)+'</td></tr>';
+  }).join("");
+  return '<div class="scan-count">'+res.length+' ticker'+(res.length===1?"":"s")+' match &bull; showing '+Math.min(60,res.length)+' &bull; click a row for detail</div>'+
+    '<table class="scan-table"><thead><tr><th class="l">Ticker</th><th>Asset</th><th>Traders</th><th>Net</th><th>Disclosed $</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function scanInner(){
+  var o=_scanOpts;
+  function sel(id2,val,opts){return '<select data-scan="'+id2+'">'+opts.map(function(op){return '<option value="'+op[0]+'"'+(String(val)===String(op[0])?" selected":"")+'>'+op[1]+'</option>';}).join("")+'</select>';}
+  return '<div class="scan-head"><div class="scan-title">&#128269; Consensus Scanner</div><button class="dw-close" id="scan-close" aria-label="Close scanner">&times;</button></div>'+
+    '<div class="scan-ctl">'+
+    '<label>Min traders'+sel("minTraders",o.minTraders,[[1,"1+"],[2,"2+"],[3,"3+"],[4,"4+"]])+'</label>'+
+    '<label>Direction'+sel("dir",o.dir,[["all","Any"],["buy","Net Buying"],["sell","Net Selling"]])+'</label>'+
+    '<label>Asset'+sel("asset",o.asset,[["all","All"],["stock","Stocks"],["crypto","Crypto"]])+'</label>'+
+    '<label>Signal'+sel("signal",o.signal,[["any","Any"],["CLUSTER_BUY","Cluster Buy"],["CROSSOVER","Crossover"],["WHALE_ACCUM","Whale Accum"],["COORD_SELL","Coord Sell"]])+'</label>'+
+    '<label>Sort by'+sel("sort",o.sort,[["nt","Most traders"],["val","Largest $"],["net","Net direction"]])+'</label>'+
+    '</div><div class="scan-body" id="scan-results">'+scanResultsHtml()+'</div>';
+}
+function bindScan(){
+  var c=id("scan-close");if(c)c.addEventListener("click",closeScanner);
+  document.querySelectorAll("[data-scan]").forEach(function(sl){sl.addEventListener("change",function(e){
+    var k=e.currentTarget.getAttribute("data-scan"),v=e.currentTarget.value;
+    _scanOpts[k]=(k==="minTraders")?parseInt(v,10):v;
+    var rd=id("scan-results");if(rd)rd.innerHTML=scanResultsHtml();
+  });});
+}
+function openScanner(){id("scan-modal").hidden=false;id("scan-inner").innerHTML=scanInner();bindScan();}
+function closeScanner(){var m=id("scan-modal");if(m)m.hidden=true;}
+/* ==== Wave 9 end ==== */
 var _ctxTk=null;
 function ctxItems(tk){
   return [
@@ -1776,6 +1848,7 @@ function buildCmds(){
   out.push({ico:"&#8646;",lbl:"Toggle density",hint:"view",run:function(){S.density=S.density==="compact"?"comfortable":"compact";_sDirty=true;render();}});
   out.push({ico:"&#128190;",lbl:"Export trades to CSV",hint:"action",run:function(){var b=id("export-csv");if(b)b.click();}});
   out.push({ico:"&#128279;",lbl:"Share current view",hint:"action",run:function(){if(typeof shareView==="function")shareView();}});
+  out.push({ico:"&#128269;",lbl:"Consensus scanner",hint:"scan",run:function(){closeCmdk();openScanner();}});
   out.push({ico:"&#9000;",lbl:"Keyboard shortcuts",hint:"help",run:openHelp});
   var seenTk={};consensus().forEach(function(e){if(seenTk[e.ticker])return;seenTk[e.ticker]=1;out.push({ico:"&#128200;",lbl:e.ticker+" \u2014 "+(e.co||""),hint:"ticker",run:function(){closeCmdk();openDrawer(e.ticker);}});});
   var seenTr={};topTraders.forEach(function(t){if(seenTr[t.name])return;seenTr[t.name]=1;out.push({ico:"&#128100;",lbl:t.name,hint:"trader",run:function(){S.tab="trades";S.trader=t.name;_sDirty=true;render();}});out.push({ico:"&#129514;",lbl:"Backtest "+t.name,hint:"backtest",run:function(){closeCmdk();openBacktest(t.name);}});});
@@ -1822,10 +1895,11 @@ function closeHelp(){id("help-modal").hidden=true;}
   document.addEventListener("contextmenu",function(e){var el=e.target.closest?e.target.closest("[data-ctx],[data-drawer]"):null;if(!el)return;var tk=el.getAttribute("data-ctx")||el.getAttribute("data-drawer");if(!tk)return;e.preventDefault();showCtx(e.clientX,e.clientY,tk);});
   window.addEventListener("scroll",hideCtx,true);
   id("bt-modal").addEventListener("click",function(e){if(e.target===id("bt-modal"))closeBacktest();});
+  id("scan-modal").addEventListener("click",function(e){if(e.target===id("scan-modal"))closeScanner();});
   document.addEventListener("keydown",function(e){
     var t=e.target,tag=t&&t.tagName,typing=tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT";
     if((e.ctrlKey||e.metaKey)&&(e.key==="k"||e.key==="K")){e.preventDefault();if(id("cmdk").hidden)openCmdk();else closeCmdk();return;}
-    if(e.key==="Escape"){if(!id("ctx-menu").hidden){hideCtx();return;}if(!id("bt-modal").hidden){closeBacktest();return;}if(!id("chart-modal").hidden){closeChart();return;}if(!id("cmdk").hidden){closeCmdk();return;}if(!id("help-modal").hidden){closeHelp();return;}if(!id("drawer").hidden){closeDrawer();return;}}
+    if(e.key==="Escape"){if(!id("scan-modal").hidden){closeScanner();return;}if(!id("ctx-menu").hidden){hideCtx();return;}if(!id("bt-modal").hidden){closeBacktest();return;}if(!id("chart-modal").hidden){closeChart();return;}if(!id("cmdk").hidden){closeCmdk();return;}if(!id("help-modal").hidden){closeHelp();return;}if(!id("drawer").hidden){closeDrawer();return;}}
     if(typing)return;
     if(e.key==="/"){e.preventDefault();S.tab="trades";render();setTimeout(function(){var sq=id("sq");if(sq)sq.focus();},60);return;}
     if(e.key==="?"){e.preventDefault();openHelp();return;}
@@ -1836,6 +1910,7 @@ function closeHelp(){id("help-modal").hidden=true;}
   });
 })();
 </script>
+<div id="scan-modal" class="cmdk-overlay" hidden role="dialog" aria-modal="true" aria-label="Consensus scanner"><div class="cmdk-box scan-box"><div id="scan-inner"></div></div></div>
 <div id="ctx-menu" class="ctx-menu" hidden role="menu"></div>
 <div id="bt-modal" class="cmdk-overlay" hidden role="dialog" aria-modal="true" aria-label="Trader backtest"><div class="cmdk-box bt-box"><div id="bt-inner"></div></div></div>
 <datalist id="tk-suggest"></datalist>
