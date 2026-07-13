@@ -335,6 +335,8 @@ html.ts-acc #main-app{ display:block !important; }
   .drawer-scrim:not([hidden]),.ts-toast,#tab-body.tb-enter>*,.chart-svg,.pos-spark svg,.wl-spark svg,
   .sig-chip,.val-pulse{ animation:none!important; }
   .eq-line{ stroke-dasharray:none!important;animation:none!important; }
+  .chart-svg rect,.summary-banner::after{ animation:none!important; }
+  .chart-svg rect{ transform:none!important; }
   button:active,.cons-chip:hover,.sig-chip:hover,.pt-swatch:hover,.risk-cell:hover,.bt-stat:hover,
   .scan-table tbody tr:hover{ transform:none!important; }
 }
@@ -550,6 +552,14 @@ button:active{transform:scale(.97)}
 /* pnl value updated pulse */
 @keyframes valuePulse{0%{transform:scale(1)}30%{transform:scale(1.14)}100%{transform:scale(1)}}
 .val-pulse{animation:valuePulse .5s ease-out;display:inline-block}
+
+/* ==== Wave 14: count-ups, candle grow-in, banner sheen ==== */
+@keyframes candleGrow{from{transform:scaleY(.15);opacity:.25}to{transform:scaleY(1);opacity:1}}
+.chart-svg rect{transform-box:fill-box;transform-origin:center bottom;animation:candleGrow .5s cubic-bezier(.16,1,.3,1) both}
+@keyframes bannerSheen{0%{background-position:120% 0}100%{background-position:-120% 0}}
+.summary-banner{position:relative;overflow:hidden}
+.summary-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.045) 50%,transparent 58%);background-size:250% 100%;animation:bannerSheen 9s linear infinite;pointer-events:none}
+.cv{display:inline-block;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -1025,6 +1035,23 @@ function filtered(){
 }
 
 // ---- RENDER HELPERS ----
+function _cv(key,val,pre,suf,dec){pre=pre||"";suf=suf||"";dec=dec||0;var disp=pre+(dec>0?val.toFixed(dec):Math.round(val).toLocaleString())+suf;return '<span class="cv" data-cvk="'+key+'" data-cv="'+val+'" data-cvp="'+esc(pre)+'" data-cvs="'+esc(suf)+'" data-cvd="'+dec+'">'+disp+'</span>';}
+var _cvPrev={};
+function animateCounts(){
+  var RAF=(typeof requestAnimationFrame==="function")?requestAnimationFrame:null;
+  var reduce=(typeof matchMedia==="function")&&matchMedia("(prefers-reduced-motion:reduce)").matches;
+  var els=document.querySelectorAll(".cv[data-cvk]");
+  if(!els||!els.length)return;
+  Array.prototype.forEach.call(els,function(el){
+    var key=el.getAttribute("data-cvk"),to=parseFloat(el.getAttribute("data-cv"))||0;
+    var pre=el.getAttribute("data-cvp")||"",suf=el.getAttribute("data-cvs")||"",dec=parseInt(el.getAttribute("data-cvd")||"0",10);
+    function fmtN(n){return pre+(dec>0?n.toFixed(dec):Math.round(n).toLocaleString())+suf;}
+    var from=_cvPrev[key];_cvPrev[key]=to;
+    if(!RAF||reduce||from==null||Math.abs(from-to)<0.005){el.textContent=fmtN(to);return;}
+    var start=(typeof performance!=="undefined"&&performance.now)?performance.now():Date.now(),dur=620;
+    (function step(now){var t=Math.min(1,((now||Date.now())-start)/dur);var e=1-Math.pow(1-t,3);el.textContent=fmtN(from+(to-from)*e);if(t<1)RAF(step);else el.textContent=fmtN(to);})(start);
+  });
+}
 function banner(){
   var buys=trades.filter(function(t){return t.action==="BUY";});
   var total=0;buys.forEach(function(t){total+=parseFloat(scale(t,S.budget).amt);});
@@ -1306,10 +1333,10 @@ function renderPortfolio(){
       '<div class="v '+bcls+'">'+bsign+vsSpy.toFixed(1)+'%</div><div class="l">'+word+' S&amp;P 500</div></div>';
   }
   var summary='<div class="pf-summary">'+
-    '<div class="pf-stat"><div class="v">$'+totalCost.toFixed(0)+'</div><div class="l">Invested</div></div>'+
-    '<div class="pf-stat"><div class="v">$'+totalVal.toFixed(0)+'</div><div class="l">Current Value</div></div>'+
-    '<div class="pf-stat"><div class="v '+tcls+'">'+tsign+'$'+totalPnl.toFixed(0)+'</div><div class="l">Total P&amp;L</div></div>'+
-    '<div class="pf-stat"><div class="v '+tcls+'">'+tsign+totPct.toFixed(1)+'%</div><div class="l">Return</div></div>'+
+    '<div class="pf-stat"><div class="v">'+_cv("pfInv",totalCost,"$","",0)+'</div><div class="l">Invested</div></div>'+
+    '<div class="pf-stat"><div class="v">'+_cv("pfVal",totalVal,"$","",0)+'</div><div class="l">Current Value</div></div>'+
+    '<div class="pf-stat"><div class="v '+tcls+'">'+_cv("pfPnl",Math.abs(totalPnl),(totalPnl>=0?"+$":"-$"),"",0)+'</div><div class="l">Total P&amp;L</div></div>'+
+    '<div class="pf-stat"><div class="v '+tcls+'">'+_cv("pfRet",Math.abs(totPct),(totPct>=0?"+":"-"),"%",1)+'</div><div class="l">Return</div></div>'+
     '<div class="pf-stat"><div class="v">'+wins+'/'+S.paper.length+'</div><div class="l">Winners</div></div>'+
   '</div>';
   body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
@@ -1478,6 +1505,7 @@ function render(){
   else if(S.tab==="watchlist")renderWatchlist();
   else renderSources();
   updatePfBadge();
+  animateCounts();
   (function(){var tb=id("tab-body");if(tb&&S.tab!==_prevRenderTab){tb.classList.remove("tb-enter");void tb.offsetWidth;tb.classList.add("tb-enter");clearTimeout(_tbEnterT);_tbEnterT=setTimeout(function(){tb.classList.remove("tb-enter");},700);}_prevRenderTab=S.tab;})();
   snapshotPortfolio();
   save();
