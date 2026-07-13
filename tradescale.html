@@ -1045,7 +1045,11 @@ function riskMetrics(){
   var conc=(largest/tot*100),conc3=(top3/tot*100);
   var ccls=conc>=40?"pnl-neg":conc>=25?"":"pnl-pos";
   var crP=cryptoV/tot*100,stP=stockV/tot*100;
+  var hhi=0;Object.keys(tks).forEach(function(k){var w=tks[k]/tot;hhi+=w*w;});hhi=hhi*10000;
+  var grade=hhi<1500?"A \u2014 Diversified":hhi<2500?"B \u2014 Moderate":hhi<4000?"C \u2014 Concentrated":"D \u2014 High Risk";
+  var gcls=hhi<1500?"pnl-pos":hhi<4000?"":"pnl-neg";
   return '<div class="risk-grid">'+
+    '<div class="risk-cell"><div class="rc-v '+gcls+'">'+hhi.toFixed(0)+'</div><div class="rc-l">Concentration (HHI) &bull; '+grade+'</div></div>'+
     '<div class="risk-cell"><div class="rc-v">'+uniq+'</div><div class="rc-l">Unique Tickers</div></div>'+
     '<div class="risk-cell"><div class="rc-v '+ccls+'">'+conc.toFixed(0)+'%</div><div class="rc-l">Largest ('+esc(largestTk)+')</div></div>'+
     '<div class="risk-cell"><div class="rc-v">'+conc3.toFixed(0)+'%</div><div class="rc-l">Top-3 Concentration</div></div>'+
@@ -1582,12 +1586,14 @@ function closeBacktest(){var m=id("bt-modal");if(m)m.hidden=true;}
 /* ==== Wave 6 end ==== */
 var OHLC_CACHE={};
 function smaArr(cl,p){var o=[];for(var i=0;i<cl.length;i++){if(i<p-1){o.push(null);continue;}var s2=0;for(var j=i-p+1;j<=i;j++)s2+=cl[j];o.push(s2/p);}return o;}
+function emaArr(cl,p){var o=[],k=2/(p+1),prev=null;for(var i=0;i<cl.length;i++){if(i<p-1){o.push(null);continue;}if(prev==null){var s2=0;for(var j=i-p+1;j<=i;j++)s2+=cl[j];prev=s2/p;o.push(prev);continue;}prev=cl[i]*k+prev*(1-k);o.push(prev);}return o;}
+function macdArr(cl){var f=emaArr(cl,12),sl=emaArr(cl,26),m=[];for(var i=0;i<cl.length;i++)m.push(f[i]!=null&&sl[i]!=null?f[i]-sl[i]:null);var mv=m.map(function(x){return x==null?0:x;}),sig9=emaArr(mv,9),sig=[],hist=[];for(var k=0;k<cl.length;k++){var sg=(m[k]!=null&&sig9[k]!=null)?sig9[k]:null;sig.push(sg);hist.push((m[k]!=null&&sg!=null)?m[k]-sg:null);}return {macd:m,signal:sig,hist:hist};}
 function bollinger(cl,p,k){var mid=smaArr(cl,p),up=[],lo=[];for(var i=0;i<cl.length;i++){if(mid[i]==null){up.push(null);lo.push(null);continue;}var s2=0;for(var j=i-p+1;j<=i;j++)s2+=Math.pow(cl[j]-mid[i],2);var sd=Math.sqrt(s2/p);up.push(mid[i]+k*sd);lo.push(mid[i]-k*sd);}return {mid:mid,up:up,lo:lo};}
 function rsiArr(cl,p){var o=[],g=0,l=0;for(var i=1;i<cl.length;i++){var d=cl[i]-cl[i-1];if(i<=p){if(d>0)g+=d;else l-=d;if(i===p){g/=p;l/=p;o.length=0;for(var z=0;z<p;z++)o.push(null);o.push(l===0?100:100-100/(1+g/l));}}else{var gg=d>0?d:0,ll=d<0?-d:0;g=(g*(p-1)+gg)/p;l=(l*(p-1)+ll)/p;o.push(l===0?100:100-100/(1+g/l));}}while(o.length<cl.length)o.unshift(null);o.length=cl.length;return o;}
 var _chartMeta=null;
 function candleSvg(ohlc){
-  var W=700,H=300,padL=6,padR=52,padT=8,rsiH=64,gap=8;
-  var priceH=H-rsiH-gap-padT-16;
+  var W=700,H=372,padL=6,padR=52,padT=8,rsiH=58,macdH=58,gap=8;
+  var priceH=H-rsiH-macdH-2*gap-padT-16;
   var n=ohlc.length;if(!n)return {svg:'<div class="chart-note">No data.</div>',meta:null};
   var closes=ohlc.map(function(c){return c[4];});
   var hi=Math.max.apply(null,ohlc.map(function(c){return c[2];}));
@@ -1612,7 +1618,7 @@ function candleSvg(ohlc){
   for(var i=0;i<n;i++){if(bb.up[i]==null||bb.lo[i]==null){bst=false;continue;}dU+=(bst?"L":"M")+xOf(i).toFixed(1)+" "+yOf(bb.up[i]).toFixed(1)+" ";bst=true;}
   bst=false;for(var i2=n-1;i2>=0;i2--){if(bb.up[i2]==null||bb.lo[i2]==null)continue;dL+=(bst?"L":"M")+xOf(i2).toFixed(1)+" "+yOf(bb.lo[i2]).toFixed(1)+" ";bst=true;}
   if(dU&&dL)band='<path d="'+dU+dL+'Z" fill="#4f8ff0" opacity=".07"/>';
-  var overlays=band+line(bb.up,"#4f8ff0",0.8)+line(bb.lo,"#4f8ff0",0.8)+line(smaArr(closes,20),"#f5a623",1.3);
+  var overlays=band+line(bb.up,"#4f8ff0",0.8)+line(bb.lo,"#4f8ff0",0.8)+line(smaArr(closes,20),"#f5a623",1.3)+line(emaArr(closes,50),"#43c6e8",1.1);
   var gy=priceH+padT;
   var grid='<line x1="'+padL+'" y1="'+padT.toFixed(1)+'" x2="'+padL+'" y2="'+gy.toFixed(1)+'" stroke="var(--border)" stroke-width="1"/>';
   [0,0.25,0.5,0.75,1].forEach(function(f){var yy=padT+f*priceH,pv=hi-f*(hi-lo);grid+='<line x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-padR).toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="var(--border)" stroke-width=".5" opacity=".5"/><text x="'+(W-padR+3)+'" y="'+(yy+3).toFixed(1)+'" font-size="9" fill="var(--text-muted)">$'+(pv>=1000?pv.toFixed(0):pv.toPrecision(4))+'</text>';});
@@ -1622,7 +1628,15 @@ function candleSvg(ohlc){
   [30,70].forEach(function(v){rsiGrid+='<line x1="'+padL+'" y1="'+ry(v).toFixed(1)+'" x2="'+(W-padR).toFixed(1)+'" y2="'+ry(v).toFixed(1)+'" stroke="var(--border)" stroke-width=".5" stroke-dasharray="3 3"/><text x="'+(W-padR+3)+'" y="'+(ry(v)+3).toFixed(1)+'" font-size="8" fill="var(--text-muted)">'+v+'</text>';});
   var rd="",rst=false;for(var k=0;k<rsi.length;k++){if(rsi[k]==null){rst=false;continue;}rd+=(rst?"L":"M")+xOf(k).toFixed(1)+" "+ry(rsi[k]).toFixed(1)+" ";rst=true;}
   var rsiLine=rd?'<path d="'+rd+'" fill="none" stroke="#c74fef" stroke-width="1.1"/>':"";
-  var svg='<svg class="chart-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+grid+band+overlays+body+rsiGrid+rsiLine+'<line id="chart-cross" x1="0" y1="'+padT+'" x2="0" y2="'+rBot.toFixed(1)+'" stroke="var(--text-muted)" stroke-width=".7" opacity="0" stroke-dasharray="2 2"/></svg>';
+  var mac=macdArr(closes),mTop=rBot+gap+12,mBot=mTop+macdH;
+  var mvals=[];mac.macd.forEach(function(v){if(v!=null)mvals.push(v);});mac.signal.forEach(function(v){if(v!=null)mvals.push(v);});mac.hist.forEach(function(v){if(v!=null)mvals.push(v);});
+  var mAbs=mvals.length?Math.max.apply(null,mvals.map(Math.abs)):1;if(!mAbs)mAbs=1;
+  var mMid=mTop+macdH/2,my=function(v){return mMid-(v/mAbs)*(macdH/2-2);};
+  var macdG='<text x="'+padL+'" y="'+(mTop-3).toFixed(1)+'" font-size="9" fill="var(--text-muted)">MACD(12,26,9)</text><line x1="'+padL+'" y1="'+mMid.toFixed(1)+'" x2="'+(W-padR).toFixed(1)+'" y2="'+mMid.toFixed(1)+'" stroke="var(--border)" stroke-width=".5"/>';
+  var hbars="";mac.hist.forEach(function(v,i){if(v==null)return;var x=xOf(i),h=Math.abs(my(v)-mMid);hbars+='<rect x="'+(x-cw/2).toFixed(1)+'" y="'+Math.min(my(v),mMid).toFixed(1)+'" width="'+cw.toFixed(1)+'" height="'+Math.max(0.5,h).toFixed(1)+'" fill="'+(v>=0?"#2ebd85":"#ef4f6b")+'" opacity=".55"/>';});
+  function mline(arr,col){var d="",st=false;for(var i=0;i<arr.length;i++){if(arr[i]==null){st=false;continue;}d+=(st?"L":"M")+xOf(i).toFixed(1)+" "+my(arr[i]).toFixed(1)+" ";st=true;}return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.1"/>':"";}
+  var macdPanel=macdG+hbars+mline(mac.macd,"#4f8ff0")+mline(mac.signal,"#f5a623");
+  var svg='<svg class="chart-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+grid+band+overlays+body+rsiGrid+rsiLine+macdPanel+'<line id="chart-cross" x1="0" y1="'+padT+'" x2="0" y2="'+mBot.toFixed(1)+'" stroke="var(--text-muted)" stroke-width=".7" opacity="0" stroke-dasharray="2 2"/></svg>';
   _chartMeta={n:n,padL:padL,plotW:plotW,ohlc:ohlc,rsi:rsi,W:W};
   return {svg:svg,meta:_chartMeta};
 }
@@ -1631,7 +1645,7 @@ function chartInner(tk,tf,state,ohlc){
     '<div style="display:flex;align-items:center;gap:10px"><div class="chart-tf">'+
     [7,30,90].map(function(d){return '<button data-tf="'+d+'" class="'+(d===tf?"on":"")+'">'+d+'D</button>';}).join("")+
     '</div><button class="dw-close" id="chart-close" aria-label="Close chart">&times;</button></div></div>';
-  var leg='<div class="chart-legend"><span><i style="background:#f5a623"></i>SMA20</span><span><i style="background:#4f8ff0"></i>Bollinger</span><span><i style="background:#c74fef"></i>RSI</span><span><i style="background:#2ebd85"></i>up</span><span><i style="background:#ef4f6b"></i>down</span></div>';
+  var leg='<div class="chart-legend"><span><i style="background:#f5a623"></i>SMA20</span><span><i style="background:#4f8ff0"></i>Bollinger</span><span><i style="background:#43c6e8"></i>EMA50</span><span><i style="background:#c74fef"></i>RSI</span><span><i style="background:#4f8ff0"></i>MACD</span><span><i style="background:#2ebd85"></i>up</span><span><i style="background:#ef4f6b"></i>down</span></div>';
   var bodyHtml;
   if(state==="loading")bodyHtml='<div class="chart-note">Loading price history&hellip;</div>';
   else if(state==="nodata")bodyHtml='<div class="chart-note">Candlestick history is available for crypto tickers with an internet connection.<br>('+esc(tk)+' has no OHLC feed'+(navigator.onLine?"":" &mdash; you are offline")+'.)</div>';
