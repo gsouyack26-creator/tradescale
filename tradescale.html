@@ -474,6 +474,19 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .wl-cols-pop label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:.82rem;cursor:pointer}
 .wl-cols-pop label:hover{background:var(--bg-secondary)}
 .wl-cols-pop input{accent-color:var(--accent-blue,#4f8ff0)}
+
+/* ==== Wave 11: import modal ==== */
+.imp-box{width:min(560px,94vw)}
+.imp-head{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--border)}
+.imp-title{font-size:1.12rem;font-weight:800}
+.imp-body{padding:16px 18px}
+.imp-body textarea{width:100%;box-sizing:border-box;min-height:150px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:var(--mono);font-size:.8rem;padding:10px;resize:vertical}
+.imp-hint{font-size:.74rem;color:var(--text-muted);margin:8px 0 12px;line-height:1.5}
+.imp-hint code{background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.imp-actions{display:flex;gap:8px;justify-content:flex-end}
+.imp-actions button{padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text);cursor:pointer;font-weight:700;font-size:.82rem}
+.imp-actions button.primary{background:var(--accent-blue,#4f8ff0);color:#fff;border-color:transparent}
+.imp-msg{font-size:.8rem;margin-top:10px}
 </style>
 </head>
 <body>
@@ -859,6 +872,62 @@ function sparkSvg(arr,pos){
   var col=pos?"var(--accent-green)":"var(--accent-red)";
   return '<svg class="spark" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="'+col+'" stroke-width="1.4" points="'+pts+'"/></svg>';
 }
+/* ==== Wave 11: import + saved views ==== */
+function normImport(o){
+  if(!o||typeof o!=="object")return null;
+  var tk=String(o.ticker||o.symbol||"").trim().toUpperCase();if(!tk)return null;
+  var dir=String(o.dir||o.direction||"LONG").trim().toUpperCase();dir=(dir==="SHORT"||dir==="SELL")?"SHORT":"LONG";
+  var shares=Math.abs(parseFloat(o.shares))||0,entry=Math.abs(parseFloat(o.entry!=null?o.entry:o.price))||0;
+  if(!shares||!entry)return null;
+  return {pid:"imp"+Date.now()+Math.floor(Math.random()*1e5),ticker:tk,co:String(o.co||o.company||tk),dir:dir,entry:entry,shares:shares,cost:entry*shares,date:String(o.date||new Date().toISOString().slice(0,10)),spyEntry:curPrice("SPY")||0,who:String(o.who||"Imported"),fund:String(o.fund||"My Trades")};
+}
+function parseImport(text){
+  text=(text||"").trim();if(!text)return {positions:[],errors:["Nothing to import."]};
+  var pos=[],errs=[];
+  if(text.charAt(0)==="["||text.charAt(0)==="{"){
+    try{var j=JSON.parse(text);if(!Array.isArray(j))j=[j];
+      j.forEach(function(o,i){var p=normImport(o);if(p)pos.push(p);else errs.push("Entry "+(i+1)+": missing ticker/shares/price.");});
+    }catch(e){errs.push("Invalid JSON: "+e.message);}
+    return {positions:pos,errors:errs};
+  }
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim();});
+  var start=/ticker|symbol/i.test(lines[0]||"")?1:0;
+  for(var i=start;i<lines.length;i++){
+    var c=lines[i].split(",").map(function(x){return x.trim();});
+    if(c.length<3){errs.push("Line "+(i+1)+": need ticker,dir,shares,entry");continue;}
+    var p=normImport({ticker:c[0],dir:c[1],shares:c[2],entry:c[3],co:c[4]});
+    if(p)pos.push(p);else errs.push("Line "+(i+1)+": invalid ticker/shares/price.");
+  }
+  return {positions:pos,errors:errs};
+}
+function impInner(msg){
+  return '<div class="imp-head"><div class="imp-title">&#8681; Import your positions</div><button class="dw-close" id="imp-close" aria-label="Close">&times;</button></div>'+
+    '<div class="imp-body"><div class="imp-hint">Paste <b>CSV</b> (<code>ticker,dir,shares,entry,company</code>) or a <b>JSON</b> array of <code>{ticker,dir,shares,entry}</code>. Positions are added to your paper portfolio &mdash; nothing is uploaded.</div>'+
+    '<textarea id="imp-text" placeholder="BTC,LONG,0.05,60000,Bitcoin\nAAPL,LONG,10,180,Apple Inc"></textarea>'+
+    '<div id="imp-msg" class="imp-msg">'+(msg||"")+'</div>'+
+    '<div class="imp-actions" style="margin-top:12px"><button id="imp-cancel">Cancel</button><button id="imp-go" class="primary">Import</button></div></div>';
+}
+function openImport(){id("imp-modal").hidden=false;id("imp-inner").innerHTML=impInner("");bindImp();var t=id("imp-text");if(t)t.focus();}
+function closeImport(){var m=id("imp-modal");if(m)m.hidden=true;}
+function doImport(){
+  var t=id("imp-text");if(!t)return;
+  var r=parseImport(t.value);
+  if(!r.positions.length){id("imp-msg").innerHTML='<span class="pnl-neg">No valid rows. '+esc((r.errors[0]||""))+'</span>';return;}
+  S.paper=S.paper.concat(r.positions);_sDirty=true;save();
+  closeImport();S.tab="portfolio";render();
+  if(typeof toastMsg==="function")toastMsg("Imported "+r.positions.length+" position"+(r.positions.length===1?"":"s")+(r.errors.length?" ("+r.errors.length+" skipped)":""),"var(--accent-green)");
+}
+function bindImp(){
+  var c=id("imp-close");if(c)c.addEventListener("click",closeImport);
+  var cn=id("imp-cancel");if(cn)cn.addEventListener("click",closeImport);
+  var g=id("imp-go");if(g)g.addEventListener("click",doImport);
+}
+function loadViews(){try{var v=JSON.parse(localStorage.getItem("ts_views")||"[]");return Array.isArray(v)?v:[];}catch(e){return [];}}
+function saveViews(v){try{localStorage.setItem("ts_views",JSON.stringify(v));}catch(e){}}
+function currentFilters(){return {q:S.q,trader:S.trader,action:S.action,asset:S.asset,ttype:S.ttype,sort:S.sort};}
+function applyView(f){if(!f)return;["q","trader","action","asset","ttype","sort"].forEach(function(k){if(f[k]!=null)S[k]=f[k];});S.tab="trades";_sDirty=true;render();}
+function saveCurrentView(name){name=(name||"").trim();if(!name)return false;var v=loadViews().filter(function(x){return x.name!==name;});v.push({name:name,f:currentFilters()});if(v.length>20)v=v.slice(v.length-20);saveViews(v);return true;}
+/* ==== Wave 11 end ==== */
 function exportCsv(){
   var rows=[["Ticker","Company","Direction","Shares","Entry","Current","Cost","Value","PnL","PnL%","CopiedFrom","Date"]];
   S.paper.forEach(function(p){var r=posPnl(p);rows.push([p.ticker,p.co,p.dir,p.shares.toFixed(4),p.entry,r.cur.toFixed(2),p.cost.toFixed(2),r.val.toFixed(2),r.pnl.toFixed(2),r.pct.toFixed(1),p.who,p.date]);});
@@ -1179,9 +1248,10 @@ function renderPortfolio(){
   '</div>';
   body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
     summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>':'')+cards+
-    '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
+    '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
   var exp=id("export-csv");
   if(exp)exp.addEventListener("click",exportCsv);
+  var impb=id("import-btn");if(impb)impb.addEventListener("click",openImport);
   var clr=id("clear-all");
   if(clr)clr.addEventListener("click",function(){if(confirm("Clear all paper positions?")){S.paper=[];save();render();}});
   document.querySelectorAll("[data-close]").forEach(function(b){
@@ -1861,6 +1931,9 @@ function buildCmds(){
   out.push({ico:"&#128190;",lbl:"Export trades to CSV",hint:"action",run:function(){var b=id("export-csv");if(b)b.click();}});
   out.push({ico:"&#128279;",lbl:"Share current view",hint:"action",run:function(){if(typeof shareView==="function")shareView();}});
   out.push({ico:"&#128269;",lbl:"Consensus scanner",hint:"scan",run:function(){closeCmdk();openScanner();}});
+  out.push({ico:"&#8681;",lbl:"Import your positions",hint:"import",run:function(){closeCmdk();openImport();}});
+  out.push({ico:"&#128190;",lbl:"Save current filter view\u2026",hint:"view",run:function(){var nm=prompt("Name this view:");if(nm&&saveCurrentView(nm)&&typeof toastMsg==="function")toastMsg("View \""+nm+"\" saved","var(--accent-green)");}});
+  loadViews().forEach(function(vw){out.push({ico:"&#128193;",lbl:"View: "+vw.name,hint:"view",run:function(){applyView(vw.f);}});});
   out.push({ico:"&#9000;",lbl:"Keyboard shortcuts",hint:"help",run:openHelp});
   var seenTk={};consensus().forEach(function(e){if(seenTk[e.ticker])return;seenTk[e.ticker]=1;out.push({ico:"&#128200;",lbl:e.ticker+" \u2014 "+(e.co||""),hint:"ticker",run:function(){closeCmdk();openDrawer(e.ticker);}});});
   var seenTr={};topTraders.forEach(function(t){if(seenTr[t.name])return;seenTr[t.name]=1;out.push({ico:"&#128100;",lbl:t.name,hint:"trader",run:function(){S.tab="trades";S.trader=t.name;_sDirty=true;render();}});out.push({ico:"&#129514;",lbl:"Backtest "+t.name,hint:"backtest",run:function(){closeCmdk();openBacktest(t.name);}});});
@@ -1908,10 +1981,11 @@ function closeHelp(){id("help-modal").hidden=true;}
   window.addEventListener("scroll",hideCtx,true);
   id("bt-modal").addEventListener("click",function(e){if(e.target===id("bt-modal"))closeBacktest();});
   id("scan-modal").addEventListener("click",function(e){if(e.target===id("scan-modal"))closeScanner();});
+  id("imp-modal").addEventListener("click",function(e){if(e.target===id("imp-modal"))closeImport();});
   document.addEventListener("keydown",function(e){
     var t=e.target,tag=t&&t.tagName,typing=tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT";
     if((e.ctrlKey||e.metaKey)&&(e.key==="k"||e.key==="K")){e.preventDefault();if(id("cmdk").hidden)openCmdk();else closeCmdk();return;}
-    if(e.key==="Escape"){if(!id("scan-modal").hidden){closeScanner();return;}if(!id("ctx-menu").hidden){hideCtx();return;}if(!id("bt-modal").hidden){closeBacktest();return;}if(!id("chart-modal").hidden){closeChart();return;}if(!id("cmdk").hidden){closeCmdk();return;}if(!id("help-modal").hidden){closeHelp();return;}if(!id("drawer").hidden){closeDrawer();return;}}
+    if(e.key==="Escape"){if(!id("imp-modal").hidden){closeImport();return;}if(!id("scan-modal").hidden){closeScanner();return;}if(!id("ctx-menu").hidden){hideCtx();return;}if(!id("bt-modal").hidden){closeBacktest();return;}if(!id("chart-modal").hidden){closeChart();return;}if(!id("cmdk").hidden){closeCmdk();return;}if(!id("help-modal").hidden){closeHelp();return;}if(!id("drawer").hidden){closeDrawer();return;}}
     if(typing)return;
     if(e.key==="/"){e.preventDefault();S.tab="trades";render();setTimeout(function(){var sq=id("sq");if(sq)sq.focus();},60);return;}
     if(e.key==="?"){e.preventDefault();openHelp();return;}
@@ -1922,6 +1996,7 @@ function closeHelp(){id("help-modal").hidden=true;}
   });
 })();
 </script>
+<div id="imp-modal" class="cmdk-overlay" hidden role="dialog" aria-modal="true" aria-label="Import trades"><div class="cmdk-box imp-box"><div id="imp-inner"></div></div></div>
 <div id="scan-modal" class="cmdk-overlay" hidden role="dialog" aria-modal="true" aria-label="Consensus scanner"><div class="cmdk-box scan-box"><div id="scan-inner"></div></div></div>
 <div id="ctx-menu" class="ctx-menu" hidden role="menu"></div>
 <div id="bt-modal" class="cmdk-overlay" hidden role="dialog" aria-modal="true" aria-label="Trader backtest"><div class="cmdk-box bt-box"><div id="bt-inner"></div></div></div>
