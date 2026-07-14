@@ -800,6 +800,8 @@ function addPaper(tradeId){
   var shares=parseFloat(sc.frac)||0;
   var cost=parseFloat(sc.amt)||0;
   if(shares<=0||cost<=0){shares=(S.budget/(t.price||1));cost=S.budget;}
+  // budget=0 edge case: both fallbacks still yield 0 — refuse the add
+  if(cost<=0){if(typeof toastMsg==="function")toastMsg("Set a budget first to paper trade","var(--accent-gold)");return;}
   var tr=trader(t.tid)||{};
   // duplicate guard
   if(S.paper.some(function(x){return x.tradeId&&String(x.tradeId)===String(tradeId);}))return;
@@ -1411,7 +1413,8 @@ function renderWatchlist(){
     else r=Math.abs(wchg(b))-Math.abs(wchg(a));
     return r*(S.wsortDir==="asc"?-1:1);
   });
-  var ago=LIVE_TS?Math.round((Date.now()-LIVE_TS)/1000)+"s ago":"connecting\u2026";
+  var _agoS=LIVE_TS?Math.max(0,Math.round((Date.now()-LIVE_TS)/1000)):null;
+  var ago=_agoS==null?"connecting\u2026":(_agoS<60?_agoS+"s ago":Math.round(_agoS/60)+"m ago");
   var _al=loadAlerts(),alertTray="";
   if(_al.length){
     var _ar=_al.map(function(a){
