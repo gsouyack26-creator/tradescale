@@ -209,7 +209,10 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .tab:focus-visible,.filter-tag:focus-visible,.paper-btn:focus-visible,.tog-btn:focus-visible,
 .close-btn:focus-visible,.wl-x:focus-visible,.cons-chip:focus-visible,.ins-tk:focus-visible,
 .disc-btn:focus-visible,.wl-add button:focus-visible,.wl-fh button:focus-visible,
-.linkbtn:focus-visible{
+.linkbtn:focus-visible,.pt-btn:focus-visible,.pt-swatch:focus-visible,.dw-close:focus-visible,
+.wl-bell:focus-visible,.lb-bt:focus-visible,.dw-btns button:focus-visible,
+.chart-tf button:focus-visible,.ctx-menu button:focus-visible,
+.wl-cols-menu>summary:focus-visible,#cmdk-input:focus-visible{
   outline:2px solid var(--accent-green);outline-offset:2px;box-shadow:0 0 0 4px rgba(46,189,133,.22);
 }
 
@@ -325,7 +328,8 @@ html.ts-acc #main-app{ display:block !important; }
 
 /* Respect user's motion preferences */
 @media(prefers-reduced-motion:reduce){
-  .card,.pos-card,.tab,.filter-tag,.paper-btn,.cons-chip{ transition:none; }
+  .card,.pos-card,.tab,.tab.active,.filter-tag,.paper-btn,.cons-chip{ transition:none; }
+  .scan-table tbody tr{ transition:none; }
   .card:hover,.pos-card:hover{ transform:none; }
   .wl-live .dot{ animation:none; opacity:1; }
   .wl-table tr.up td,.wl-table tr.down td{ animation:none; }
@@ -999,7 +1003,7 @@ function parseImport(text){
 function impInner(msg){
   return '<div class="imp-head"><div class="imp-title">&#8681; Import your positions</div><button class="dw-close" id="imp-close" aria-label="Close">&times;</button></div>'+
     '<div class="imp-body"><div class="imp-hint">Paste <b>CSV</b> (<code>ticker,dir,shares,entry,company</code>) or a <b>JSON</b> array of <code>{ticker,dir,shares,entry}</code>. Positions are added to your paper portfolio &mdash; nothing is uploaded.</div>'+
-    '<textarea id="imp-text" placeholder="BTC,LONG,0.05,60000,Bitcoin\nAAPL,LONG,10,180,Apple Inc"></textarea>'+
+    '<textarea id="imp-text" aria-label="Positions to import (CSV or JSON)" placeholder="BTC,LONG,0.05,60000,Bitcoin\nAAPL,LONG,10,180,Apple Inc"></textarea>'+
     '<div id="imp-msg" class="imp-msg">'+(msg||"")+'</div>'+
     '<div class="imp-actions" style="margin-top:12px"><button id="imp-cancel">Cancel</button><button id="imp-go" class="primary">Import</button></div></div>';
 }
@@ -1147,11 +1151,11 @@ function stratCard(s){
 function renderTrades(){
   var fb='<div class="filter-bar">'+
     '<div class="search-wrap"><span class="search-icon">&#128269;</span><input type="text" id="sq" aria-label="Search trades" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/></div>'+
-    '<select id="st">'+
+    '<select id="st" aria-label="Filter by trader">'+
       '<option value="all"'+(S.trader==="all"?' selected':'')+'>All Traders</option>'+
       (function(){var seen={},o='';topTraders.forEach(function(t){if(seen[t.name])return;seen[t.name]=1;o+='<option value="'+esc(t.name)+'"'+(S.trader===t.name?' selected':'')+'>'+esc(t.name)+'</option>';});return o;})()+
     '</select>'+
-    '<select id="ss">'+
+    '<select id="ss" aria-label="Sort by">'+
       '<option value="date"'+(S.sort==="date"?' selected':'')+'>Newest First</option>'+
       '<option value="vd"'+(S.sort==="vd"?' selected':'')+'>Largest Trade</option>'+
       '<option value="va"'+(S.sort==="va"?' selected':'')+'>Smallest Trade</option>'+
@@ -1442,7 +1446,7 @@ function renderWatchlist(){
     '<div class="wl-toolbar">'+
       '<div class="wl-add"><input id="wl-add-input" aria-label="Add symbol to watchlist" placeholder="ADD SYMBOL" maxlength="8" list="tk-suggest" autocomplete="off"/><button id="wl-add-btn">+ Add</button></div>'+
       (S.watch&&S.watch.length===0?'<button class="close-btn" id="wl-reset" style="border-color:var(--text-muted);color:var(--text-muted);font-size:.75rem">Reset to defaults</button>':'')+
-      '<select id="wl-sort" class="filter-select">'+
+      '<select id="wl-sort" class="filter-select" aria-label="Sort watchlist">'+
         '<option value="chg"'+(S.wsort==="chg"?" selected":"")+'>Biggest Movers</option>'+
         '<option value="sym"'+(S.wsort==="sym"?" selected":"")+'>Symbol A-Z</option>'+
         '<option value="price"'+(S.wsort==="price"?" selected":"")+'>Price High-Low</option>'+
@@ -1454,7 +1458,7 @@ function renderWatchlist(){
       '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes stream automatically &mdash; no key or setup needed.</div>':
      FH_KEY?
       '<div class="wl-fh"><span class="wl-badge wl-live-b">LIVE STOCKS ON</span> Real-time stock quotes active via Finnhub. <button id="fh-clear" class="linkbtn">Remove key</button></div>':
-      '<div class="wl-fh">Stocks show end-of-day close. Want <strong>real-time</strong> stock quotes too? <a href="https://finnhub.io/register" target="_blank" rel="noopener">Grab a free Finnhub key</a>, paste it here: <input id="fh-key-input" placeholder="Finnhub API key" maxlength="64" autocomplete="off"/><button id="fh-save">Go Live</button> <span style="font-size:.7rem">(stored only in your browser, never uploaded)</span></div>')+alertTray+
+      '<div class="wl-fh">Stocks show end-of-day close. Want <strong>real-time</strong> stock quotes too? <a href="https://finnhub.io/register" target="_blank" rel="noopener">Grab a free Finnhub key</a>, paste it here: <input id="fh-key-input" placeholder="Finnhub API key" aria-label="Finnhub API key" maxlength="64" autocomplete="off"/><button id="fh-save">Go Live</button> <span style="font-size:.7rem">(stored only in your browser, never uploaded)</span></div>')+alertTray+
     (wl.length?'<div class="wl-scroll"><table class="wl-table" aria-label="Live price watchlist"><thead><tr>'+
       ''+wlHdr("Symbol","sym","l")+(C.name?'<th class="l" scope="col">Name</th>':'')+wlHdr("Last","price","")+wlHdr("Change","chg","")+(C.spark?'<th scope="col">7d</th>':'')+(C.type?wlHdr("Type","type",""):'')+'<th scope="col"><span class="visually-hidden">Actions</span></th>'+''+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>':
