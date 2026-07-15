@@ -81,7 +81,7 @@ Key helpers: `esc()` (XSS escape — **every data string interpolated into inner
 
 ---
 
-## 5. Feature map (16 waves)
+## 5. Feature map (17 waves)
 
 | Wave | Feature |
 |---|---|
@@ -101,6 +101,7 @@ Key helpers: `esc()` (XSS escape — **every data string interpolated into inner
 | 14 | **FX** — animated P&L count-ups (`_cv`/`animateCounts`), candlestick grow-in, banner sheen |
 | 15 | **FX** — gradient title, skeleton-shimmer loading, active-tab underline, card glow, empty-state float, gauge needle sweep |
 | 16 | **Tactile & delight** — click ripple on controls (delegated), confetti `burstFx()` + toast on a real paper-trade add (gated on `S.paper.length` growth), drifting header aurora glow |
+| 17 | **Milestone FX** — theme-switch sheen wipe (`themeFx()`, detected centrally in `render()` so it covers buttons/hotkey/palette), new-all-time-high celebration (`celebrateAth()` from `snapshotPortfolio()`, guarded by `_athReady`/`_lastAth` so it never fires on load or re-fires on a flat value) |
 
 ---
 
@@ -164,7 +165,7 @@ Spawned 3 parallel `akira` plan-mode agents — **Bugs**, **Perf**, **UX/a11y** 
 
 ---
 
-## 9. Animation system (Waves 13–16)
+## 9. Animation system (Waves 13–17)
 
 - All effects use **only `transform` / `opacity`** (compositor-friendly).
 - **Every** new animation is disabled in the extended `@media(prefers-reduced-motion:reduce)` block (kept in lockstep each wave).
@@ -176,6 +177,8 @@ Spawned 3 parallel `akira` plan-mode agents — **Bugs**, **Perf**, **UX/a11y** 
 - **Confetti** (`burstFx(x,y)`): spawns a `position:fixed` wrapper of 18 `<i>` particles with randomized `--cx/--cy/--cr/--cd` custom props → `confPop` keyframe; wrapper removed after 1.4s. Fired from the paper-add handler **only when a trade was actually added** (guards against dup/budget early-returns), paired with a success toast.
 - **Header aurora** (`.header::before`): two soft radial gradients drift horizontally (`auroraDrift`, `translateX` only). Kept to `inset:0` deliberately — **no `overflow:hidden` on the header** so keyboard focus rings on the theme/density buttons are never clipped.
 - **Dual reduced-motion guard:** FX are disabled in both CSS (`.header::before`, `.rp,.conf` set to `animation:none!important`) **and** JS (`_reduceFx()` returns early in `burstFx`/ripple), so nothing spawns even if CSS is bypassed.
+- **Theme sheen wipe** (`#theme-wipe`): a light diagonal gradient sweeps once on theme change. Detected centrally in `render()` (`_prevTheme`) so it fires regardless of trigger (button, `t` hotkey, command palette) without wiring each site.
+- **All-time-high celebration** (`celebrateAth`): `snapshotPortfolio()` computes the prior peak **before** mutating history, then celebrates only a genuine new high. `_athReady` skips the first snapshot per session (no spam on reload at an ATH); `_lastAth` debounces so a flat/unchanged value never re-fires. Needs ≥2 days of history to be meaningful.
 
 ---
 
