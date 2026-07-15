@@ -1,0 +1,12 @@
+# TradeScale Python lint config. Only fetch_data.py (the daily GitHub Actions
+# data bot) is Python; everything else is the single-file HTML app.
+line-length = 120
+target-version = "py311"
+
+[lint]
+# Stricter than default: pyflakes/pycodestyle + bugbear, comprehensions,
+# simplify, pyupgrade, perf, ruff-native, bandit security, pylint-errors, datetime-tz.
+select = ["E", "F", "W", "B", "C4", "SIM", "UP", "PERF", "RUF", "S", "PLE", "DTZ"]
+# E501 (line length) is left to judgment: the FUNDS table is hand-aligned for
+# readability and a few disclosure f-strings read best on one line.
+ignore = ["E501"]

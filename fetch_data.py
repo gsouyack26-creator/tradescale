@@ -10,7 +10,7 @@ import os
 import re
 import sys
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 UA = {"User-Agent": "Mozilla/5.0 (TradeScale data fetcher)"}
 
@@ -24,7 +24,9 @@ FUNDS = {
 }
 
 def fetch(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+    if not url.startswith("https://"):
+        raise ValueError(f"refusing non-https URL: {url!r}")
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:  # noqa: S310 - scheme guarded above
         return r.read()
 
 FINNHUB_KEY = os.environ.get("FINNHUB_KEY", "").strip()
@@ -37,7 +39,7 @@ def quote(symbol):
             c = d.get("c")
             if isinstance(c, (int, float)) and c > 0:
                 return c
-        except Exception:
+        except Exception:  # noqa: S110 - fall through to the Yahoo fallback below
             pass
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
     try:
@@ -86,7 +88,7 @@ def fetch_crypto(start_tid, start_trade_id):
     traders, ctrades, prices = [], [], {}
     tid = start_tid
     trade_id = start_trade_id
-    today = datetime.now(timezone.utc).date().isoformat()
+    today = datetime.now(UTC).date().isoformat()
 
     # 1. live prices for top coins
     coin_sym = {}  # coingecko id -> symbol
@@ -290,6 +292,8 @@ def main():
             })
             trade_id += 1
 
+    ark_count = len(all_trades)  # ARK is the primary dataset; guard on it below
+
     # crypto whales (Michael Saylor / Strategy #1, top BTC & ETH treasuries)
     print("\nFetching crypto whales...")
     c_traders, c_trades, c_prices = fetch_crypto(trader_id, trade_id)
@@ -306,9 +310,12 @@ def main():
     all_trades.extend(g_trades)
     print(f"  got {len(g_traders)} members, {len(g_trades)} disclosed trades")
 
-    # sort newest first, cap size (keep all crypto whales + newest ARK trades)
+    # sort newest first, cap size (higher cap keeps congress + crypto alongside ARK)
     all_trades.sort(key=lambda x: x["date"], reverse=True)
-    all_trades = all_trades[:80]
+    all_trades = all_trades[:120]
+    # drop trader rows that have no surviving trades after the cap (no orphan entries in the UI)
+    _live_tids = {t["tid"] for t in all_trades}
+    traders = [tr for tr in traders if tr["id"] in _live_tids]
 
     # current market prices for every traded ticker (for live quotes + paper-trade P&L)
     print("\nFetching current quotes...")
@@ -331,7 +338,7 @@ def main():
     prices.update(c_prices)
 
     out = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "prices": prices,
         "latest_trade_date": latest_date,
         "source": "ARK Invest (arkfunds.io) + crypto whales (CoinGecko) + Congress (CongressInvests/EFD)",
@@ -339,8 +346,8 @@ def main():
         "trades": all_trades,
     }
 
-    if not traders or not all_trades:
-        print("[abort] all sources failed — refusing to overwrite trades.json with empty data", file=sys.stderr)
+    if not traders or not all_trades or ark_count == 0:
+        print(f"[abort] primary source empty (ark_trades={ark_count}, total={len(all_trades)}) — refusing to overwrite trades.json", file=sys.stderr)
         sys.exit(1)
 
     os.makedirs("data", exist_ok=True)
