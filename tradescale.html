@@ -517,6 +517,11 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .ro-banner .ro-ic{font-size:1.5rem;line-height:1}
 .ro-banner .ro-tx{flex:1;font-size:.84rem;line-height:1.4;min-width:180px}
 body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
+.card.shift{border-color:var(--accent-blue)}
+.shift-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.shift-badge{font-weight:800;font-size:.9rem;color:var(--accent-blue)}
+.shift-x{background:none;border:none;color:var(--text-muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:0 4px}
+.shift-x:hover{color:var(--text-primary)}
 
 /* ==== Wave 9: consensus scanner ==== */
 .scan-box{width:min(720px,95vw);max-height:92vh;overflow:auto}
@@ -786,6 +791,7 @@ var S=loadState();
 var PRICES={};
 var _sDirty=false;
 var RO=false,_snapMeta=null;
+var _shiftDigest=[],_shiftSince="",_shiftDismissed=false;
 var _consMemo=null,_csMemo=null,_memoTrades=null,_sigMemo=null,_streakMemo=null,_lbMemo=null,_budgetT=null,_stockSeq=0;
 function _invalidateMemo(){_consMemo=null;_csMemo=null;_memoTrades=null;_sigMemo=null;_streakMemo=null;_lbMemo=null;}
 function _sanPaper(a){if(!Array.isArray(a))return [];var num=function(v){var x=Number(v);return isFinite(x)?x:0;};return a.filter(function(p){return p&&typeof p==="object";}).map(function(p){p.entry=num(p.entry);p.shares=num(p.shares);p.cost=num(p.cost);return p;}).filter(function(p){return p.shares>0&&p.cost>0;});}
@@ -996,6 +1002,34 @@ function signals(){
     if(types.length)out.push({ticker:e.ticker,co:e.co,types:types,nt:e.nt,net:e.net,buys:e.buys,sells:e.sells});
   });
   _sigMemo=out;_memoTrades=trades;return out;
+}
+function _shiftTk(tk){return '<button class="ins-tk" data-cons="'+esc(tk)+'">'+esc(tk)+'</button>';}
+function _consFinger(){
+  var sig={};signals().forEach(function(x){sig[x.ticker]=x.types.slice().sort();});
+  var map={};consensus().forEach(function(e){if(e.nt>=1)map[e.ticker]={nt:e.nt,net:e.net,types:sig[e.ticker]||[]};});
+  return map;
+}
+function computeShifts(){
+  if(RO)return;
+  var cur=_consFinger(),prev=null;
+  try{prev=JSON.parse(localStorage.getItem("ts_cons_snap")||"null");}catch(e){}
+  var out=[];
+  if(prev&&prev.map){
+    var pm=prev.map,LM={CLUSTER_BUY:"cluster buying",COORD_SELL:"coordinated selling",CROSSOVER:"fund + Congress crossover buying",WHALE_ACCUM:"whale-sized accumulation"};
+    var IC={CLUSTER_BUY:"\uD83D\uDC0B",COORD_SELL:"\uD83D\uDEA8",CROSSOVER:"\uD83C\uDFDB\uFE0F",WHALE_ACCUM:"\uD83D\uDCB0"};
+    var PR={CROSSOVER:1,WHALE_ACCUM:2,COORD_SELL:3,CLUSTER_BUY:5};
+    Object.keys(cur).forEach(function(tk){
+      var c=cur[tk],p=pm[tk],pt={};((p&&p.types)||[]).forEach(function(x){pt[x]=1;});
+      var newTypes=(c.types||[]).filter(function(x){return !pt[x];});
+      newTypes.forEach(function(x){out.push({p:PR[x]||6,ico:IC[x]||"\uD83D\uDCC8",tk:tk,html:"New <strong>"+LM[x]+"</strong> in "+_shiftTk(tk)});});
+      if(p&&c.nt>p.nt&&c.nt>=2&&!newTypes.length)out.push({p:4,ico:"\uD83D\uDCC8",tk:tk,html:_shiftTk(tk)+" conviction rising \u2014 now <strong>"+c.nt+" traders</strong> (was "+p.nt+")"});
+      if(p&&((p.net>0&&c.net<0)||(p.net<0&&c.net>0))&&c.nt>=2)out.push({p:2,ico:"\uD83D\uDD01",tk:tk,html:_shiftTk(tk)+" flipped to net <strong>"+(c.net>0?"buying":"selling")+"</strong>"});
+    });
+  }
+  out.sort(function(a,b){return a.p-b.p;});
+  _shiftDigest=out.slice(0,6);
+  _shiftSince=(prev&&prev.ts)?String(prev.ts):"";
+  try{localStorage.setItem("ts_cons_snap",JSON.stringify({ts:(GEN_STR||localDate()),map:cur}));}catch(e){}
 }
 function streaks(){
   if(_streakMemo&&_memoTrades===trades)return _streakMemo;
@@ -1411,7 +1445,10 @@ function renderTrades(){
   var _brief=smartMoneyBrief();
   var _briefBody=_brief.length?('<ul class="brief-list">'+_brief.map(function(l){return '<li><span class="brief-ico">'+l.ico+'</span><span>'+l.html+'</span></li>';}).join("")+'</ul>'):'<div class="brief-quiet">Markets are quiet \u2014 no strong smart-money consensus in the current window.</div>';
   var briefHtml='<div class="card brief"><div class="brief-head"><span class="brief-badge">\uD83D\uDCCB Smart-Money Brief</span><span class="brief-as">'+(GEN_STR?"as of "+esc(GEN_STR):"sample data")+'</span></div>'+_briefBody+'<div class="brief-src">'+esc(GEN_SRC||"Bundled sample data")+' &bull; scaled pro-rata by disclosed % of portfolio &bull; not financial advice</div></div>';
-  id("tab-body").innerHTML=briefHtml+'<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+sigHtml+consHtml+cgHtml+stkHtml+lbHtml+fb+cards;
+  var shiftHtml="";
+  if(_shiftDigest.length&&!_shiftDismissed)shiftHtml='<div class="card shift"><div class="shift-head"><span class="shift-badge">\uD83D\uDD04 Consensus shifts'+(_shiftSince?" since "+esc(_shiftSince):"")+'</span><button class="shift-x" id="shift-dismiss" aria-label="Dismiss">&times;</button></div><ul class="brief-list">'+_shiftDigest.map(function(l){return '<li><span class="brief-ico">'+l.ico+'</span><span>'+l.html+'</span></li>';}).join("")+'</ul></div>';
+  id("tab-body").innerHTML=shiftHtml+briefHtml+'<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+sigHtml+consHtml+cgHtml+stkHtml+lbHtml+fb+cards;
+  var _sx=id("shift-dismiss");if(_sx)_sx.addEventListener("click",function(){_shiftDismissed=true;render();});
   bindBody();
 }
 function renderStrategies(){
@@ -1961,6 +1998,7 @@ function loadLiveData(){
       var _nOpen={};Object.keys(S.open).forEach(function(k){if(_vIds[k])_nOpen[k]=S.open[k];});
       S.open=_nOpen;
       if(S.trader!=="all"){var ok=false;for(var i=0;i<topTraders.length;i++)if(topTraders[i].name===S.trader)ok=true;if(!ok)S.trader="all";}
+      computeShifts();
       render();
       if(_prevSeen&&_newT.length){
         var _nm=_newT.slice(0,3).map(function(t){return ((trader(t.tid)||{}).name||"?")+" "+t.action+" "+t.ticker;}).join(" · ");
