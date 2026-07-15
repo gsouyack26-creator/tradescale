@@ -606,6 +606,17 @@ button:active{transform:scale(.97)}
 #theme-wipe{position:fixed;inset:0;z-index:9997;pointer-events:none;opacity:0;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.09) 50%,transparent 58%);background-size:250% 100%;background-position:120% 0}
 #theme-wipe.go{animation:themeWipe .55s ease-out}
 @keyframes themeWipe{0%{opacity:1;background-position:120% 0}85%{opacity:1}100%{opacity:0;background-position:-120% 0}}
+
+/* ==== Wave 18: Smart-Money Brief + trust layer ==== */
+.brief{background:linear-gradient(135deg,rgba(46,189,133,.07),rgba(74,144,217,.05));border:1px solid rgba(74,144,217,.30)}
+.brief-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.brief-badge{font-weight:800;font-size:1rem;letter-spacing:.01em;background:linear-gradient(90deg,var(--accent-green),var(--accent-blue));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.brief-as{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+.brief-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.brief-list li{display:flex;gap:10px;align-items:flex-start;font-size:.9rem;line-height:1.55}
+.brief-ico{flex-shrink:0;font-size:1.05rem;width:22px;text-align:center}
+.brief-quiet{color:var(--text-muted);font-size:.88rem;font-style:italic}
+.brief-src{margin-top:13px;padding-top:9px;border-top:1px solid var(--border);font-size:.67rem;color:var(--text-muted);letter-spacing:.02em}
 </style>
 </head>
 <body>
@@ -1189,6 +1200,23 @@ function stratCard(s){
 }
 
 // ---- TAB RENDERS ----
+function smartMoneyBrief(){
+  var lines=[],sig=signals();
+  function has(t){return function(x){return x.types.indexOf(t)>-1;};}
+  function tks(arr,n){return arr.slice(0,n).map(function(x){return '<button class="ins-tk" data-cons="'+esc(x.ticker)+'">'+esc(x.ticker)+'</button>';}).join(", ");}
+  var clu=sig.filter(has("CLUSTER_BUY")),cross=sig.filter(has("CROSSOVER")),whale=sig.filter(has("WHALE_ACCUM")),sell=sig.filter(has("COORD_SELL"));
+  if(clu.length)lines.push({ico:"\uD83D\uDC0B",html:"Smart money is <strong>clustering into</strong> "+tks(clu,3)+" \u2014 multiple traders buying the same names."});
+  if(cross.length)lines.push({ico:"\uD83C\uDFDB\uFE0F",html:"<strong>Bipartisan conviction:</strong> funds and Congress are <em>both</em> buying "+tks(cross,2)+"."});
+  if(whale.length)lines.push({ico:"\uD83D\uDCB0",html:"<strong>Whale-sized accumulation</strong> in "+tks(whale,3)+" (highest-conviction position sizes)."});
+  if(sell.length)lines.push({ico:"\uD83D\uDEA8",html:"<strong>Coordinated selling</strong> in "+tks(sell,3)+" \u2014 watch for distribution."});
+  var cg=congressSummary();
+  if(cg&&(cg.buys||cg.sells))lines.push({ico:"\uD83C\uDFDB\uFE0F",html:"Congress were <strong>"+(cg.net>=0?"net buyers":"net sellers")+"</strong> ("+cg.buys+" buys / "+cg.sells+" sells across "+cg.members+" member"+(cg.members===1?"":"s")+")"+(cg.top?", most-bought "+tks([{ticker:cg.top}],1):"")+"."});
+  var st=streaks()[0];
+  if(st&&st.count>=2)lines.push({ico:"\uD83D\uDD25",html:"<strong>"+esc(st.name)+"</strong> has "+(st.action==="BUY"?"bought":"sold")+" "+tks([{ticker:st.ticker}],1)+" "+st.count+"\u00D7 in a row \u2014 conviction building."});
+  var lb=leaderboard()[0];
+  if(lb&&isFinite(lb.avg))lines.push({ico:"\uD83C\uDFC6",html:"Top disclosed performer: <strong>"+esc(lb.name)+"</strong> ("+(lb.avg>=0?"+":"")+lb.avg.toFixed(1)+"% avg on "+lb.n+" disclosed trades vs current price)."});
+  return lines;
+}
 function renderTrades(){
   var fb='<div class="filter-bar">'+
     '<div class="search-wrap"><span class="search-icon">&#128269;</span><input type="text" id="sq" aria-label="Search trades" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/></div>'+
@@ -1263,7 +1291,10 @@ function renderTrades(){
       'across '+cg.members+' member'+(cg.members===1?"":"s")+' &bull; net flow <span class="'+ncls+'">'+nsign+fmt(Math.abs(cg.net))+'</span>'+
       (cg.top?' &bull; most bought: <button class="ins-tk" data-cons="'+esc(cg.top)+'">'+esc(cg.top)+'</button>':'')+'</span></div>';
   }
-  id("tab-body").innerHTML='<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+sigHtml+consHtml+cgHtml+stkHtml+lbHtml+fb+cards;
+  var _brief=smartMoneyBrief();
+  var _briefBody=_brief.length?('<ul class="brief-list">'+_brief.map(function(l){return '<li><span class="brief-ico">'+l.ico+'</span><span>'+l.html+'</span></li>';}).join("")+'</ul>'):'<div class="brief-quiet">Markets are quiet \u2014 no strong smart-money consensus in the current window.</div>';
+  var briefHtml='<div class="card brief"><div class="brief-head"><span class="brief-badge">\uD83D\uDCCB Smart-Money Brief</span><span class="brief-as">'+(GEN_STR?"as of "+esc(GEN_STR):"sample data")+'</span></div>'+_briefBody+'<div class="brief-src">'+esc(GEN_SRC||"Bundled sample data")+' &bull; scaled pro-rata by disclosed % of portfolio &bull; not financial advice</div></div>';
+  id("tab-body").innerHTML=briefHtml+'<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+sigHtml+consHtml+cgHtml+stkHtml+lbHtml+fb+cards;
   bindBody();
 }
 function renderStrategies(){
@@ -1775,6 +1806,7 @@ function loadLiveData(){
       var when=d.latest_trade_date||"recent";
       var gen=d.generated_at?new Date(d.generated_at):null;
       var genStr=gen?gen.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+gen.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"";
+      GEN_STR=genStr;GEN_SRC=d.source||"";
       setStatus('<span style="color:var(--accent-green)">&#9679; LIVE</span> &mdash; '+topTraders.length+' traders tracked &bull; latest trade '+esc(when)+' &bull; synced '+esc(genStr));
     }else{
       throw new Error("empty data");
@@ -1787,6 +1819,7 @@ function loadLiveData(){
 // ---- #2 LIVE CRYPTO QUOTES (CoinGecko, browser-side, ~60s) ----
 var CG_ID={BTC:"bitcoin",ETH:"ethereum",BNB:"binancecoin",SOL:"solana",XRP:"ripple",ADA:"cardano",DOGE:"dogecoin",AVAX:"avalanche-2",LINK:"chainlink",DOT:"polkadot"};
 var CRYPTO_LIVE={},PREV_PX={},LIVE_TS=0;
+var GEN_STR="",GEN_SRC="";
 function refreshCryptoQuotes(){
   var syms={};
   trades.forEach(function(t){if(t.asset==="crypto"&&CG_ID[t.ticker])syms[t.ticker]=CG_ID[t.ticker];});
