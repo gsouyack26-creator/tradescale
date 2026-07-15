@@ -326,9 +326,27 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 html:not(.ts-acc) #disclaimer-gate{ display:flex; }
 html.ts-acc #main-app{ display:block !important; }
 
+/* ==== Wave 18.7: design-system polish ==== */
+@keyframes tsFadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.card.brief,.card.shift,.attr-wrap,.ro-banner,.pf-bar{animation:tsFadeUp .34s cubic-bezier(.22,.61,.36,1) both}
+.bench-cell,.attr-row,.rp-kpi{transition:transform .14s ease,border-color .14s ease}
+.bench-cell:hover,.attr-row:hover{transform:translateY(-2px);border-color:var(--accent-blue)}
+.attr-row{padding:2px 4px;border-radius:8px;border:1px solid transparent}
+.attr-bar i,.risk-bar i{transition:width .5s cubic-bezier(.22,.61,.36,1)}
+.brief-badge,.shift-badge,.attr-hd b,.eq-hd b{background:linear-gradient(90deg,var(--accent-blue),var(--accent-green));-webkit-background-clip:text;background-clip:text}
+.card.shift .shift-badge,.card.brief .brief-badge{-webkit-text-fill-color:transparent}
+.pf-select:focus-visible,.pf-mini:focus-visible,#pf-select:focus-visible{outline:2px solid var(--accent-blue);outline-offset:2px}
+.pf-bar select:hover{border-color:var(--accent-blue)}
+.rp-kpi:hover{border-color:var(--accent-blue)}
+.bench-building{background:linear-gradient(90deg,rgba(79,143,240,.08),transparent)}
+
 /* Respect user's motion preferences */
 @media(prefers-reduced-motion:reduce){
   .card,.pos-card,.tab,.tab.active,.filter-tag,.paper-btn,.cons-chip{ transition:none; }
+  .card.brief,.card.shift,.attr-wrap,.ro-banner,.pf-bar{ animation:none; }
+  .bench-cell,.attr-row,.rp-kpi{ transition:none; }
+  .bench-cell:hover,.attr-row:hover,.rp-kpi:hover{ transform:none; }
+  .attr-bar i,.risk-bar i{ transition:none; }
   .scan-table tbody tr{ transition:none; }
   .card:hover,.pos-card:hover{ transform:none; }
   .wl-live .dot{ animation:none; opacity:1; }
