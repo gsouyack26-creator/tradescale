@@ -951,15 +951,17 @@ function comparePf(){
       '<td>'+st.w+'/'+st.n+'</td></tr>';
   }).join("");
   var old=document.getElementById("pf-compare-modal");if(old)old.parentNode.removeChild(old);
+  _cmpPrev=document.activeElement;
   var m=document.createElement("div");m.id="pf-compare-modal";
+  m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Portfolio comparison");
   m.innerHTML='<div class="cmp-inner"><div class="cmp-hd"><b>\u21c4 Portfolio Comparison</b><button class="close-btn" id="cmp-close">Close</button></div>'+
     '<div class="cmp-scroll"><table class="rp-tbl cmp-tbl"><thead><tr><th>Portfolio</th><th>Budget</th><th>Pos</th><th>Invested</th><th>Value</th><th>P&amp;L</th><th>Return</th><th>vs S&amp;P</th><th>Top</th><th>Div.</th><th>Win</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<div class="cmp-foot">Returns are hypothetical, computed from live prices against each position\u2019s entry. \u201cDiv.\u201d = concentration grade (A diversified \u2192 D concentrated). Not investment advice.</div></div>';
   document.body.appendChild(m);
-  var cb=document.getElementById("cmp-close");if(cb)cb.addEventListener("click",closeCompare);
+  var cb=document.getElementById("cmp-close");if(cb){cb.addEventListener("click",closeCompare);try{cb.focus();}catch(e){}}
   m.addEventListener("click",function(e){if(e.target===m)closeCompare();});
 }
-function closeCompare(){var m=document.getElementById("pf-compare-modal");if(m)m.parentNode.removeChild(m);}
+function closeCompare(){var m=document.getElementById("pf-compare-modal");if(m)m.parentNode.removeChild(m);if(_cmpPrev&&_cmpPrev.focus)try{_cmpPrev.focus();}catch(e){}_cmpPrev=null;}
 function nextMove(){
   if(typeof signals!=="function")return null;
   var sig=signals().filter(function(x){return x.net>0&&x.types.some(function(t){return t!=="COORD_SELL";});});
@@ -997,6 +999,7 @@ var _sDirty=false;
 var RO=false,_snapMeta=null;
 var _shiftDigest=[],_shiftSince="",_shiftDismissed=false;
 var _nextMoveDismissed=false;
+var _reportPrev=null,_cmpPrev=null;
 var _consMemo=null,_csMemo=null,_memoTrades=null,_sigMemo=null,_streakMemo=null,_lbMemo=null,_budgetT=null,_stockSeq=0;
 function _invalidateMemo(){_consMemo=null;_csMemo=null;_memoTrades=null;_sigMemo=null;_streakMemo=null;_lbMemo=null;}
 function _sanPaper(a){if(!Array.isArray(a))return [];var num=function(v){var x=Number(v);return isFinite(x)?x:0;};return a.filter(function(p){return p&&typeof p==="object";}).map(function(p){p.entry=num(p.entry);p.shares=num(p.shares);p.cost=num(p.cost);if(p.note!=null)p.note=String(p.note).slice(0,280);return p;}).filter(function(p){return p.shares>0&&p.cost>0;});}
@@ -1574,7 +1577,9 @@ function generateReport(){
   if(bs.ready)kpi.push(['Beta / Corr',bs.beta.toFixed(2)+' / '+bs.corr.toFixed(2),'']);
   var kpiHtml=kpi.map(function(k){return '<div class="rp-kpi"><div class="rp-kv '+k[2]+'">'+k[1]+'</div><div class="rp-kl">'+k[0]+'</div></div>';}).join("");
   var old=document.getElementById("report-sheet");if(old)old.parentNode.removeChild(old);
+  _reportPrev=document.activeElement;
   var sheet=document.createElement("div");sheet.id="report-sheet";
+  sheet.setAttribute("role","dialog");sheet.setAttribute("aria-modal","true");sheet.setAttribute("aria-label","Portfolio tearsheet");
   sheet.innerHTML='<div class="rp-inner">'+
     '<div class="rp-hd"><div><div class="rp-title">TradeScale \u2014 Portfolio Tearsheet</div><div class="rp-sub">Hypothetical paper portfolio scaled to a $'+esc(String(S.budget))+' budget \u2022 as of '+esc(GEN_STR||localDate())+'</div></div><div class="rp-brand">\uD83D\uDCC8</div></div>'+
     '<div class="rp-kpis">'+kpiHtml+'</div>'+
@@ -1586,11 +1591,11 @@ function generateReport(){
   '</div>';
   document.body.appendChild(sheet);
   document.body.classList.add("report-open");
-  var pb=document.getElementById("rp-print");if(pb)pb.addEventListener("click",function(){window.print();});
+  var pb=document.getElementById("rp-print");if(pb){pb.addEventListener("click",function(){window.print();});try{pb.focus();}catch(e){}}
   var cb=document.getElementById("rp-close");if(cb)cb.addEventListener("click",closeReport);
   sheet.addEventListener("click",function(e){if(e.target===sheet)closeReport();});
 }
-function closeReport(){var s=document.getElementById("report-sheet");if(s)s.parentNode.removeChild(s);document.body.classList.remove("report-open");}
+function closeReport(){var s=document.getElementById("report-sheet");if(s)s.parentNode.removeChild(s);document.body.classList.remove("report-open");if(_reportPrev&&_reportPrev.focus)try{_reportPrev.focus();}catch(e){}_reportPrev=null;}
 function renderTrades(){
   var fb='<div class="filter-bar">'+
     '<div class="search-wrap"><span class="search-icon">&#128269;</span><input type="text" id="sq" aria-label="Search trades" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/></div>'+
@@ -2674,7 +2679,7 @@ function closeHelp(){id("help-modal").hidden=true;}
   document.addEventListener("keydown",function(e){
     var t=e.target,tag=t&&t.tagName,typing=tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT";
     if((e.ctrlKey||e.metaKey)&&(e.key==="k"||e.key==="K")){e.preventDefault();if(id("cmdk").hidden)openCmdk();else closeCmdk();return;}
-    if(e.key==="Escape"){if(!id("imp-modal").hidden){closeImport();return;}if(!id("scan-modal").hidden){closeScanner();return;}if(!id("ctx-menu").hidden){hideCtx();return;}if(!id("bt-modal").hidden){closeBacktest();return;}if(!id("chart-modal").hidden){closeChart();return;}if(!id("cmdk").hidden){closeCmdk();return;}if(!id("help-modal").hidden){closeHelp();return;}if(!id("drawer").hidden){closeDrawer();return;}}
+    if(e.key==="Escape"){if(document.getElementById("pf-compare-modal")){closeCompare();return;}if(document.getElementById("report-sheet")){closeReport();return;}if(!id("imp-modal").hidden){closeImport();return;}if(!id("scan-modal").hidden){closeScanner();return;}if(!id("ctx-menu").hidden){hideCtx();return;}if(!id("bt-modal").hidden){closeBacktest();return;}if(!id("chart-modal").hidden){closeChart();return;}if(!id("cmdk").hidden){closeCmdk();return;}if(!id("help-modal").hidden){closeHelp();return;}if(!id("drawer").hidden){closeDrawer();return;}}
     if(typing)return;
     if(e.key==="/"){e.preventDefault();S.tab="trades";render();setTimeout(function(){var sq=id("sq");if(sq)sq.focus();},60);return;}
     if(e.key==="?"){e.preventDefault();openHelp();return;}
