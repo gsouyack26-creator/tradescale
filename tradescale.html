@@ -365,6 +365,11 @@ html.ts-acc #main-app{ display:block !important; }
   .dv,.val,.v,.pv,.si strong{color:#111!important;}
   .dv.g,.pnl-pos{color:#006400!important;}.pnl-neg{color:#8b0000!important;}
   a[href]:after{content:" (" attr(href) ")";font-size:.7rem;}
+  .no-print{display:none!important;}
+  body.report-open>*:not(#report-sheet){display:none!important;}
+  body.report-open #report-sheet{position:static!important;background:#fff!important;padding:0!important;backdrop-filter:none!important;overflow:visible!important;}
+  body.report-open .rp-inner{box-shadow:none!important;border:none!important;max-width:none!important;padding:0!important;background:#fff!important;}
+  .rp-kpi,.rp-tbl th,.rp-tbl td,.rp-sec h3,.rp-foot{border-color:#ccc!important;}
 }
 
 /* ==== Wave 4: command palette / drawer / help ==== */
@@ -486,6 +491,28 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .attr-bar i{display:block;height:100%;border-radius:4px}
 .attr-pnl{text-align:right;font-weight:700;white-space:nowrap}
 .attr-pnl em{display:block;font-style:normal;font-weight:500;font-size:.7rem;opacity:.8}
+.report-open{overflow:hidden}
+#report-sheet{position:fixed;inset:0;z-index:11000;background:rgba(6,10,18,.72);backdrop-filter:blur(3px);overflow:auto;padding:24px 16px}
+.rp-inner{max-width:840px;margin:0 auto;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:26px 30px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.rp-hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--accent-blue);padding-bottom:12px;margin-bottom:16px;gap:12px}
+.rp-title{font-size:1.4rem;font-weight:800}
+.rp-sub{font-size:.8rem;color:var(--text-muted);margin-top:4px}
+.rp-brand{font-size:2rem;line-height:1}
+.rp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:10px;margin-bottom:6px}
+.rp-kpi{background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center}
+.rp-kv{font-size:1.15rem;font-weight:800}
+.rp-kl{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-top:3px}
+.rp-sec{margin:16px 0}
+.rp-sec h3{font-size:.95rem;margin:0 0 8px;border-left:3px solid var(--accent-blue);padding-left:8px}
+.rp-brief{margin:0;padding-left:18px;font-size:.84rem;line-height:1.5}
+.rp-brief li{margin-bottom:4px}
+.rp-brief .ins-tk{background:none;border:none;color:var(--accent-blue);font:inherit;padding:0;cursor:default}
+.rp-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.rp-tbl th{text-align:left;color:var(--text-muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);padding:6px 8px}
+.rp-tbl td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.rp-dir{font-size:.66rem;color:var(--text-muted)}
+.rp-foot{margin-top:18px;padding-top:12px;border-top:1px solid var(--border);font-size:.66rem;color:var(--text-muted);line-height:1.4}
+.rp-actions{margin-top:16px;display:flex;gap:10px;justify-content:flex-end}
 
 /* ==== Wave 9: consensus scanner ==== */
 .scan-box{width:min(720px,95vw);max-height:92vh;overflow:auto}
@@ -1236,6 +1263,44 @@ function smartMoneyBrief(){
   if(lb&&isFinite(lb.avg))lines.push({ico:"\uD83C\uDFC6",html:"Top disclosed performer: <strong>"+esc(lb.name)+"</strong> ("+(lb.avg>=0?"+":"")+lb.avg.toFixed(1)+"% avg on "+lb.n+" disclosed trades vs current price)."});
   return lines;
 }
+function generateReport(){
+  if(!S.paper.length){if(typeof toastMsg==="function")toastMsg("No positions to report \u2014 add paper trades first","var(--accent-red)");return;}
+  var tc=0,tv=0,tp=0,w=0;
+  S.paper.forEach(function(p){var r=posPnl(p);tc+=p.cost;tv+=r.val;tp+=r.pnl;if(r.pnl>=0)w++;});
+  var tpct=tc>0?tp/tc*100:0;
+  var spyNow=curPrice("SPY"),bc=0,br=0;
+  S.paper.forEach(function(p){if(spyNow&&p.spyEntry>0){bc+=p.cost;br+=p.cost*((spyNow-p.spyEntry)/p.spyEntry);}});
+  var bpct=bc>0?br/bc*100:null,vs=bpct===null?null:tpct-bpct;
+  var poss=S.paper.map(function(p){return {p:p,r:posPnl(p)};}).sort(function(a,b){return b.r.pnl-a.r.pnl;});
+  var posRows=poss.map(function(o){var cls=o.r.pnl>=0?"pnl-pos":"pnl-neg",sg=o.r.pnl>=0?"+":"";
+    return '<tr><td><b>'+esc(o.p.ticker)+'</b> <span class="rp-dir">'+esc(o.p.dir)+'</span></td><td>'+esc(o.p.co)+'</td><td>$'+o.p.cost.toFixed(0)+'</td><td>$'+o.r.val.toFixed(0)+'</td><td class="'+cls+'">'+sg+'$'+o.r.pnl.toFixed(0)+'</td><td class="'+cls+'">'+sg+o.r.pct.toFixed(1)+'%</td><td>'+esc(o.p.who||"\u2014")+'</td></tr>';}).join("");
+  var funds={},ford=[];
+  S.paper.forEach(function(p){var r=posPnl(p);var k=p.fund||p.who||"Unknown";if(!funds[k]){funds[k]={cost:0,pnl:0,n:0};ford.push(k);}funds[k].cost+=p.cost;funds[k].pnl+=r.pnl;funds[k].n++;});
+  var fundRows=ford.sort(function(a,b){return funds[b].pnl-funds[a].pnl;}).map(function(k){var f=funds[k],cls=f.pnl>=0?"pnl-pos":"pnl-neg",sg=f.pnl>=0?"+":"";return '<tr><td>'+esc(k)+'</td><td>'+f.n+'</td><td>$'+f.cost.toFixed(0)+'</td><td class="'+cls+'">'+sg+'$'+f.pnl.toFixed(0)+'</td></tr>';}).join("");
+  var brief=smartMoneyBrief().map(function(b){return '<li>'+b.html+'</li>';}).join("");
+  var bs=benchStats();
+  var vsTxt=vs===null?'\u2014':(vs>=0?'+':'')+vs.toFixed(1)+'%';
+  var kpi=[['Invested','$'+tc.toFixed(0),''],['Current Value','$'+tv.toFixed(0),''],['Total P&amp;L',(tp>=0?'+$':'-$')+Math.abs(tp).toFixed(0),tp>=0?'pnl-pos':'pnl-neg'],['Return',(tpct>=0?'+':'')+tpct.toFixed(1)+'%',tpct>=0?'pnl-pos':'pnl-neg'],['vs S&amp;P 500',vsTxt,vs===null?'':(vs>=0?'pnl-pos':'pnl-neg')],['Winners',w+'/'+S.paper.length,'']];
+  if(bs.ready)kpi.push(['Beta / Corr',bs.beta.toFixed(2)+' / '+bs.corr.toFixed(2),'']);
+  var kpiHtml=kpi.map(function(k){return '<div class="rp-kpi"><div class="rp-kv '+k[2]+'">'+k[1]+'</div><div class="rp-kl">'+k[0]+'</div></div>';}).join("");
+  var old=document.getElementById("report-sheet");if(old)old.parentNode.removeChild(old);
+  var sheet=document.createElement("div");sheet.id="report-sheet";
+  sheet.innerHTML='<div class="rp-inner">'+
+    '<div class="rp-hd"><div><div class="rp-title">TradeScale \u2014 Portfolio Tearsheet</div><div class="rp-sub">Hypothetical paper portfolio scaled to a $'+esc(String(S.budget))+' budget \u2022 as of '+esc(GEN_STR||localDate())+'</div></div><div class="rp-brand">\uD83D\uDCC8</div></div>'+
+    '<div class="rp-kpis">'+kpiHtml+'</div>'+
+    (brief?'<div class="rp-sec"><h3>Smart-Money Brief</h3><ul class="rp-brief">'+brief+'</ul></div>':'')+
+    '<div class="rp-sec"><h3>Positions</h3><table class="rp-tbl"><thead><tr><th>Ticker</th><th>Company</th><th>Cost</th><th>Value</th><th>P&amp;L</th><th>Return</th><th>Source</th></tr></thead><tbody>'+posRows+'</tbody></table></div>'+
+    (fundRows?'<div class="rp-sec"><h3>Attribution by Source Fund</h3><table class="rp-tbl"><thead><tr><th>Fund / Source</th><th>Positions</th><th>Cost</th><th>P&amp;L</th></tr></thead><tbody>'+fundRows+'</tbody></table></div>':'')+
+    '<div class="rp-foot">Generated '+esc(new Date().toLocaleString())+' \u2022 Data source: '+esc(GEN_SRC||"public smart-money disclosures")+' \u2022 Prices are hypothetical, delayed, and for education only. Not investment advice. No real money involved.</div>'+
+    '<div class="rp-actions no-print"><button id="rp-print" class="close-btn" style="border-color:var(--accent-blue);color:var(--accent-blue)">\uD83D\uDDA8 Print / Save PDF</button><button id="rp-close" class="close-btn">Close</button></div>'+
+  '</div>';
+  document.body.appendChild(sheet);
+  document.body.classList.add("report-open");
+  var pb=document.getElementById("rp-print");if(pb)pb.addEventListener("click",function(){window.print();});
+  var cb=document.getElementById("rp-close");if(cb)cb.addEventListener("click",closeReport);
+  sheet.addEventListener("click",function(e){if(e.target===sheet)closeReport();});
+}
+function closeReport(){var s=document.getElementById("report-sheet");if(s)s.parentNode.removeChild(s);document.body.classList.remove("report-open");}
 function renderTrades(){
   var fb='<div class="filter-bar">'+
     '<div class="search-wrap"><span class="search-icon">&#128269;</span><input type="text" id="sq" aria-label="Search trades" placeholder="Search ticker or company..." value="'+esc(S.q)+'"/></div>'+
@@ -1498,7 +1563,8 @@ function renderPortfolio(){
   '</div>';
   body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
     summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+cards+
-    '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
+    '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
+  var grp=id("gen-report");if(grp)grp.addEventListener("click",generateReport);
   var exp=id("export-csv");
   if(exp)exp.addEventListener("click",exportCsv);
   var impb=id("import-btn");if(impb)impb.addEventListener("click",openImport);
@@ -2235,6 +2301,7 @@ function buildCmds(){
   [["quant","Quant"],["bloomberg","Bloomberg"],["void","Void"]].forEach(function(t){out.push({ico:"&#127912;",lbl:"Theme: "+t[1],hint:"theme",run:function(){S.theme=t[0];_sDirty=true;render();}});});
   out.push({ico:"&#8646;",lbl:"Toggle density",hint:"view",run:function(){S.density=S.density==="compact"?"comfortable":"compact";_sDirty=true;render();}});
   out.push({ico:"&#128190;",lbl:"Export trades to CSV",hint:"action",run:function(){S.tab="portfolio";render();setTimeout(exportCsv,50);}});
+  out.push({ico:"&#128203;",lbl:"Generate portfolio report (PDF)",hint:"action",run:function(){closeCmdk();generateReport();}});
   out.push({ico:"&#128279;",lbl:"Share current view",hint:"action",run:function(){if(typeof shareView==="function")shareView();}});
   out.push({ico:"&#128269;",lbl:"Consensus scanner",hint:"scan",run:function(){closeCmdk();openScanner();}});
   out.push({ico:"&#8681;",lbl:"Import your positions",hint:"import",run:function(){closeCmdk();openImport();}});
