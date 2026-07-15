@@ -555,6 +555,14 @@ body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 .cmp-tbl tr.cmp-win td{background:rgba(46,189,133,.06)}
 .cmp-tbl tr.cmp-active td{box-shadow:inset 3px 0 0 var(--accent-blue)}
 .cmp-foot{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:.66rem;color:var(--text-muted);line-height:1.4}
+.card.nextmove{border-color:var(--accent-green);background:linear-gradient(135deg,rgba(46,189,133,.10),transparent 60%);animation:tsFadeUp .34s cubic-bezier(.22,.61,.36,1) both}
+.nm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.nm-badge{font-weight:800;font-size:.9rem;color:var(--accent-green)}
+.nm-tk{font-size:1.35rem;font-weight:800;letter-spacing:.01em}
+.nm-co{font-size:.82rem;font-weight:500;color:var(--text-muted)}
+.nm-why{font-size:.86rem;margin:6px 0;line-height:1.45}
+.nm-scale{font-size:.82rem;color:var(--text-secondary);margin-bottom:12px}
+.nm-add{margin:0}
 .card.shift{border-color:var(--accent-blue)}
 .shift-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .shift-badge{font-weight:800;font-size:.9rem;color:var(--accent-blue)}
@@ -906,11 +914,43 @@ function comparePf(){
   m.addEventListener("click",function(e){if(e.target===m)closeCompare();});
 }
 function closeCompare(){var m=document.getElementById("pf-compare-modal");if(m)m.parentNode.removeChild(m);}
+function nextMove(){
+  if(typeof signals!=="function")return null;
+  var sig=signals().filter(function(x){return x.net>0&&x.types.some(function(t){return t!=="COORD_SELL";});});
+  if(!sig.length)return null;
+  var rank=function(x){if(x.types.indexOf("CROSSOVER")>=0)return 1;if(x.types.indexOf("WHALE_ACCUM")>=0)return 2;if(x.types.indexOf("CLUSTER_BUY")>=0)return 3;return 6;};
+  sig.sort(function(a,b){return (rank(a)-rank(b))||(b.nt-a.nt);});
+  var held={};S.paper.forEach(function(p){held[p.ticker]=1;});
+  var pick=null;for(var i=0;i<sig.length;i++){if(!held[sig[i].ticker]){pick=sig[i];break;}}
+  if(!pick)return null;
+  var cand=trades.filter(function(t){return t.ticker===pick.ticker&&t.action==="BUY";});
+  if(!cand.length)return null;
+  cand.sort(function(a,b){return (parseFloat(scale(b,S.budget).pct)||0)-(parseFloat(scale(a,S.budget).pct)||0);});
+  return {sig:pick,trade:cand[0],sc:scale(cand[0],S.budget)};
+}
+function nextMoveHtml(){
+  if(RO||_nextMoveDismissed)return "";
+  var mv=nextMove();if(!mv)return "";
+  var s2=mv.sig,t=mv.trade,sc=mv.sc;
+  var why=s2.types.indexOf("CROSSOVER")>=0?"funds and Congress are both buying":s2.types.indexOf("WHALE_ACCUM")>=0?"there is whale-sized accumulation of":"multiple funds are clustering into";
+  var amt=parseFloat(sc.amt)||0,frac=parseFloat(sc.frac)||0,pr=t.price||0;
+  var pf=_activePf(),pn=(pf&&pf.name)||"portfolio";
+  return '<div class="card nextmove"><div class="nm-head"><span class="nm-badge">\uD83C\uDFAF Your next move</span><button class="shift-x" id="nm-dismiss" aria-label="Dismiss">&times;</button></div>'+
+    '<div class="nm-tk">'+esc(t.ticker)+' <span class="nm-co">'+esc(t.co||"")+'</span></div>'+
+    '<div class="nm-why">Smart money says <strong>'+why+' '+esc(t.ticker)+'</strong> \u2014 '+s2.nt+' trader'+(s2.nt===1?"":"s")+' involved.</div>'+
+    '<div class="nm-scale">At your $'+S.budget+' budget: <strong>~$'+amt.toFixed(0)+'</strong> \u00b7 '+frac.toFixed(4)+' sh @ $'+pr.toFixed(2)+'</div>'+
+    '<button class="paper-btn nm-add" data-add="'+esc(String(t.id))+'">+ Add to '+esc(pn)+'</button></div>';
+}
+function bindNextMove(){
+  var a=id("nm-add");if(a)a.addEventListener("click",function(e){addPaper(e.currentTarget.getAttribute("data-add"));render();});
+  var d=id("nm-dismiss");if(d)d.addEventListener("click",function(){_nextMoveDismissed=true;render();});
+}
 var S=loadState();
 var PRICES={};
 var _sDirty=false;
 var RO=false,_snapMeta=null;
 var _shiftDigest=[],_shiftSince="",_shiftDismissed=false;
+var _nextMoveDismissed=false;
 var _consMemo=null,_csMemo=null,_memoTrades=null,_sigMemo=null,_streakMemo=null,_lbMemo=null,_budgetT=null,_stockSeq=0;
 function _invalidateMemo(){_consMemo=null;_csMemo=null;_memoTrades=null;_sigMemo=null;_streakMemo=null;_lbMemo=null;}
 function _sanPaper(a){if(!Array.isArray(a))return [];var num=function(v){var x=Number(v);return isFinite(x)?x:0;};return a.filter(function(p){return p&&typeof p==="object";}).map(function(p){p.entry=num(p.entry);p.shares=num(p.shares);p.cost=num(p.cost);return p;}).filter(function(p){return p.shares>0&&p.cost>0;});}
@@ -1696,10 +1736,11 @@ function renderPortfolio(){
   var body=id("tab-body");
   if(document.body&&document.body.classList)document.body.classList.toggle("ro-mode",RO);
   if(!S.paper.length){
-    body.innerHTML=pfBarHtml()+'<div class="empty"><div>&#128188;</div>'+
+    body.innerHTML=pfBarHtml()+nextMoveHtml()+'<div class="empty"><div>&#128188;</div>'+
       '<p>No paper trades yet.</p>'+
       '<p style="margin-top:8px;font-size:0.82rem">Go to <strong>Live Trades</strong> and tap <span style="color:var(--accent-green)">+ Paper Trade This</span> on any trade to copy it at your $'+S.budget+' budget. Track hypothetical P&amp;L here &mdash; no real money.</p></div>';
     bindPfBar();
+    bindNextMove();
     return;
   }
   var totalCost=0,totalVal=0,totalPnl=0,wins=0;
@@ -1755,10 +1796,11 @@ function renderPortfolio(){
   var roBanner=RO?('<div class="ro-banner"><span class="ro-ic">\uD83D\uDCF8</span><div class="ro-tx"><b>'+esc(_snapMeta.title)+'</b> &mdash; shared read-only snapshot'+(_snapMeta.asOf?' &bull; as of '+esc(_snapMeta.asOf):'')+'. Prices are live from your device; nothing is saved here.</div><button class="close-btn" id="ro-exit" style="border-color:var(--accent-blue);color:var(--accent-blue)">Open my own TradeScale &rarr;</button></div>'):'';
   var intro=RO?'':'<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>';
   var footer='<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button>'+(RO?'':'<button class="close-btn" id="share-snap" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#128279; Share Snapshot</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button>')+'</div>';
-  body.innerHTML=pfBarHtml()+roBanner+intro+
+  body.innerHTML=pfBarHtml()+roBanner+nextMoveHtml()+intro+
     summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+cards+
     footer;
   bindPfBar();
+  bindNextMove();
   var grp=id("gen-report");if(grp)grp.addEventListener("click",generateReport);
   var ssnap=id("share-snap");if(ssnap)ssnap.addEventListener("click",sharePortfolio);
   var rox=id("ro-exit");if(rox)rox.addEventListener("click",function(){try{location.hash="";}catch(e){}location.reload();});
