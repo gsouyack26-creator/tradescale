@@ -1,5 +1,5 @@
 // TradeScale service worker - offline app shell, fresh data
-const CACHE = "tradescale-v4";
+const CACHE = "tradescale-v5";
 const SHELL = [
   "./",
   "./tradescale.html",
@@ -29,14 +29,28 @@ self.addEventListener("fetch", (e) => {
       fetch(e.request).then((r) => {
         if (r.ok) {
           const copy = r.clone();
-          caches.open(CACHE).then((c) => c.put(cacheKey, copy));
+          e.waitUntil(caches.open(CACHE).then((c) => c.put(cacheKey, copy)));
         }
         return r;
-      }).catch(() => caches.match(cacheKey).then(r => r || Response.error()))
+      }).catch(() => caches.match(cacheKey).then((r) => r || Response.error()))
     );
     return;
   }
 
-  // App shell: cache-first
+  // App HTML: network-first so new deploys reach installed users; cache fallback keeps it offline-capable
+  if (e.request.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("/")) {
+    e.respondWith(
+      fetch(e.request).then((r) => {
+        if (r.ok) {
+          const copy = r.clone();
+          e.waitUntil(caches.open(CACHE).then((c) => c.put(e.request, copy)));
+        }
+        return r;
+      }).catch(() => caches.match(e.request).then((r) => r || caches.match("./tradescale.html")))
+    );
+    return;
+  }
+
+  // Other assets (icons, manifest): cache-first, network fallback
   e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
 });

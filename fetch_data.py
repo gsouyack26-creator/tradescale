@@ -3,7 +3,13 @@
 Runs on GitHub Actions (daily cron). No API key required.
 Sources: arkfunds.io (unofficial API) + ark-funds.com official holdings CSV.
 """
-import urllib.request, json, csv, io, os, sys, re
+import csv
+import io
+import json
+import os
+import re
+import sys
+import urllib.request
 from datetime import datetime, timezone
 
 UA = {"User-Agent": "Mozilla/5.0 (TradeScale data fetcher)"}
@@ -18,7 +24,8 @@ FUNDS = {
 }
 
 def fetch(url):
-    return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30).read()
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+        return r.read()
 
 FINNHUB_KEY = os.environ.get("FINNHUB_KEY", "").strip()
 
@@ -187,6 +194,7 @@ def fetch_congress(start_tid, start_trade_id, quote_fn):
         uniq.append(r)
 
     uniq.sort(key=lambda r: r.get("tx_date", ""), reverse=True)
+    uniq = [r for r in uniq if r.get("member") and r.get("ticker")]
     uniq = uniq[:25]
 
     port_by = {}
@@ -224,7 +232,7 @@ def fetch_congress(start_tid, start_trade_id, quote_fn):
 
 
 def main():
-    all_trades, traders, tid_map = [], [], {}
+    all_trades, traders = [], []
     trade_id = 1
     trader_id = 1
     latest_date = ""
@@ -331,9 +339,15 @@ def main():
         "trades": all_trades,
     }
 
+    if not traders or not all_trades:
+        print("[abort] all sources failed — refusing to overwrite trades.json with empty data", file=sys.stderr)
+        sys.exit(1)
+
     os.makedirs("data", exist_ok=True)
-    with open("data/trades.json", "w", encoding="utf-8") as f:
+    tmp = "data/trades.json.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
+    os.replace(tmp, "data/trades.json")
 
     print(f"\nWrote data/trades.json: {len(traders)} funds, {len(all_trades)} trades, latest {latest_date}")
 
