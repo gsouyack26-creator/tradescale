@@ -564,6 +564,7 @@ body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 .nm-why{font-size:.86rem;margin:6px 0;line-height:1.45}
 .nm-scale{font-size:.82rem;color:var(--text-secondary);margin-bottom:12px}
 .nm-add{margin:0}
+.pos-delta{display:inline-block;margin-top:8px;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--bg-secondary);border:1px solid var(--border)}
 .pos-note{display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding:9px 11px;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--accent-gold,#f5a623);border-radius:8px;font-size:.8rem;line-height:1.45}
 .pn-ic{flex:none;opacity:.8}
 .pn-tx{flex:1;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word}
@@ -1137,6 +1138,7 @@ function snapshotPortfolio(){
   var v=0;S.paper.forEach(function(p){v+=posPnl(p).val;});
   if(v==null||isNaN(v))return;
   var d=localDate(),h=pfHistory();
+  try{var _pk=_posSnapKey(),_ps=null;try{_ps=JSON.parse(localStorage.getItem(_pk)||"null");}catch(e){}if(!_ps||_ps.ts!==d){var _pv={};S.paper.forEach(function(p){_pv[p.pid]=posPnl(p).val;});localStorage.setItem(_pk,JSON.stringify({ts:d,vals:_pv}));}}catch(e){}
   var priorPeak=null;for(var i=0;i<h.length;i++){if(priorPeak==null||h[i].v>priorPeak)priorPeak=h[i].v;}
   var sp=curPrice("SPY")||0;
   if(h.length&&h[h.length-1].d===d){if(Math.abs(h[h.length-1].v-v)<0.01)return;h[h.length-1].v=v;h[h.length-1].s=sp;}else h.push({d:d,v:v,s:sp});
@@ -1147,6 +1149,8 @@ function snapshotPortfolio(){
     _lastAth=v;celebrateAth(v);
   }
 }
+function _posSnapKey(){return _pfHistKey()+"__pos";}
+function posDelta(pos){try{var ps=JSON.parse(localStorage.getItem(_posSnapKey())||"null");if(!ps||!ps.vals||!(pos.pid in ps.vals))return null;return {d:posPnl(pos).val-ps.vals[pos.pid],ts:ps.ts};}catch(e){return null;}}
 function maxDrawdown(vals){var peak=-Infinity,mdd=0;for(var i=0;i<vals.length;i++){if(vals[i]>peak)peak=vals[i];if(peak>0){var dd=(peak-vals[i])/peak;if(dd>mdd)mdd=dd;}}return mdd*100;}
 function sharpeEst(vals){if(vals.length<4)return null;var r=[];for(var i=1;i<vals.length;i++){if(vals[i-1]>0)r.push((vals[i]-vals[i-1])/vals[i-1]);}if(r.length<3)return null;var m=r.reduce(function(a,b){return a+b;},0)/r.length;var vv=r.reduce(function(a,b){return a+Math.pow(b-m,2);},0)/(r.length-1),sd=Math.sqrt(vv);if(sd===0)return null;return (m/sd)*Math.sqrt(365);}
 function equityCurveSvg(h){
@@ -1838,6 +1842,7 @@ function renderPortfolio(){
         '<div><div class="pl">Value</div><div class="pv">$'+r.val.toFixed(2)+'</div></div>'+
         '<div><div class="pl">P&amp;L</div><div class="pv '+cls+'">'+sign+'$'+r.pnl.toFixed(2)+' ('+sign+r.pct.toFixed(1)+'%)</div></div>'+
       '</div>'+
+      (function(){var _pd=posDelta(pos);return (_pd&&Math.abs(_pd.d)>=0.01)?'<div class="pos-delta '+(_pd.d>=0?"pnl-pos":"pnl-neg")+'" title="Change since '+esc(_pd.ts)+'">'+(_pd.d>=0?"\u25b2 +$":"\u25bc -$")+Math.abs(_pd.d).toFixed(2)+' today</div>':'';})()+
       (r.noQuote?'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px">* no live quote &mdash; using entry price</div>':'')+
       (pos.note?'<div class="pos-note"><span class="pn-ic">&#128221;</span><span class="pn-tx">'+esc(pos.note)+'</span>'+(RO?'':'<button class="pn-edit" data-note="'+pos.pid+'" title="Edit note">&#9998;</button>')+'</div>':(RO?'':'<button class="pn-add" data-note="'+pos.pid+'">&#128221; Add thesis note</button>'))+
     '</div>';
