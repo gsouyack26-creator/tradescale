@@ -577,6 +577,9 @@ body.ro-mode .pn-edit,body.ro-mode .pn-add{display:none!important}
 .shift-badge{font-weight:800;font-size:.9rem;color:var(--accent-blue)}
 .shift-x{background:none;border:none;color:var(--text-muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:0 4px}
 .shift-x:hover{color:var(--text-primary)}
+.shift-bell{background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;padding:0 4px;opacity:.5;filter:grayscale(1)}
+.shift-bell:hover{opacity:.85}
+.shift-bell.on{opacity:1;filter:none}
 
 /* ==== Wave 9: consensus scanner ==== */
 .scan-box{width:min(720px,95vw);max-height:92vh;overflow:auto}
@@ -839,9 +842,9 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     var r={budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",density:s.density||"comfortable",theme:s.theme||"quant",wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
     _migratePf(s,r);return r;
-  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
+  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
 }
 function _migratePf(s,r){
   var pf=s&&s.portfolios;
@@ -1233,15 +1236,23 @@ function computeShifts(){
     Object.keys(cur).forEach(function(tk){
       var c=cur[tk],p=pm[tk],pt={};((p&&p.types)||[]).forEach(function(x){pt[x]=1;});
       var newTypes=(c.types||[]).filter(function(x){return !pt[x];});
-      newTypes.forEach(function(x){out.push({p:PR[x]||6,ico:IC[x]||"\uD83D\uDCC8",tk:tk,html:"New <strong>"+LM[x]+"</strong> in "+_shiftTk(tk)});});
-      if(p&&c.nt>p.nt&&c.nt>=2&&!newTypes.length)out.push({p:4,ico:"\uD83D\uDCC8",tk:tk,html:_shiftTk(tk)+" conviction rising \u2014 now <strong>"+c.nt+" traders</strong> (was "+p.nt+")"});
-      if(p&&((p.net>0&&c.net<0)||(p.net<0&&c.net>0))&&c.nt>=2)out.push({p:2,ico:"\uD83D\uDD01",tk:tk,html:_shiftTk(tk)+" flipped to net <strong>"+(c.net>0?"buying":"selling")+"</strong>"});
+      newTypes.forEach(function(x){out.push({p:PR[x]||6,ico:IC[x]||"\uD83D\uDCC8",tk:tk,txt:"New "+LM[x]+" in "+tk,html:"New <strong>"+LM[x]+"</strong> in "+_shiftTk(tk)});});
+      if(p&&c.nt>p.nt&&c.nt>=2&&!newTypes.length)out.push({p:4,ico:"\uD83D\uDCC8",tk:tk,txt:tk+" conviction rising \u2014 now "+c.nt+" traders (was "+p.nt+")",html:_shiftTk(tk)+" conviction rising \u2014 now <strong>"+c.nt+" traders</strong> (was "+p.nt+")"});
+      if(p&&((p.net>0&&c.net<0)||(p.net<0&&c.net>0))&&c.nt>=2)out.push({p:2,ico:"\uD83D\uDD01",tk:tk,txt:tk+" flipped to net "+(c.net>0?"buying":"selling"),html:_shiftTk(tk)+" flipped to net <strong>"+(c.net>0?"buying":"selling")+"</strong>"});
     });
   }
   out.sort(function(a,b){return a.p-b.p;});
   _shiftDigest=out.slice(0,6);
   _shiftSince=(prev&&prev.ts)?String(prev.ts):"";
+  if(_shiftDigest.length&&S.notifyShifts&&typeof notifyEnabled==="function"&&notifyEnabled()){var _b=_shiftDigest.slice(0,3).map(function(d){return d.txt;}).join(" \u2022 ");fireAlert("\uD83D\uDCCA "+_shiftDigest.length+" smart-money shift"+(_shiftDigest.length===1?"":"s"),_b+(_shiftDigest.length>3?" +"+(_shiftDigest.length-3)+" more":""));}
   try{localStorage.setItem("ts_cons_snap",JSON.stringify({ts:(GEN_STR||localDate()),map:cur}));}catch(e){}
+}
+function toggleShiftNotify(){
+  var want=!S.notifyShifts;
+  if(want&&typeof Notification!=="undefined"&&Notification.permission==="default"){try{Notification.requestPermission();}catch(e){}}
+  S.notifyShifts=want;_sDirty=true;save(true);
+  if(typeof toastMsg==="function")toastMsg(want?"Shift alerts ON \u2014 you\u2019ll be notified when smart-money consensus moves":"Shift alerts off",want?"var(--accent-green)":"var(--text-muted)");
+  render();
 }
 function streaks(){
   if(_streakMemo&&_memoTrades===trades)return _streakMemo;
@@ -1658,9 +1669,10 @@ function renderTrades(){
   var _briefBody=_brief.length?('<ul class="brief-list">'+_brief.map(function(l){return '<li><span class="brief-ico">'+l.ico+'</span><span>'+l.html+'</span></li>';}).join("")+'</ul>'):'<div class="brief-quiet">Markets are quiet \u2014 no strong smart-money consensus in the current window.</div>';
   var briefHtml='<div class="card brief"><div class="brief-head"><span class="brief-badge">\uD83D\uDCCB Smart-Money Brief</span><span class="brief-as">'+(GEN_STR?"as of "+esc(GEN_STR):"sample data")+'</span></div>'+_briefBody+'<div class="brief-src">'+esc(GEN_SRC||"Bundled sample data")+' &bull; scaled pro-rata by disclosed % of portfolio &bull; not financial advice</div></div>';
   var shiftHtml="";
-  if(_shiftDigest.length&&!_shiftDismissed)shiftHtml='<div class="card shift"><div class="shift-head"><span class="shift-badge">\uD83D\uDD04 Consensus shifts'+(_shiftSince?" since "+esc(_shiftSince):"")+'</span><button class="shift-x" id="shift-dismiss" aria-label="Dismiss">&times;</button></div><ul class="brief-list">'+_shiftDigest.map(function(l){return '<li><span class="brief-ico">'+l.ico+'</span><span>'+l.html+'</span></li>';}).join("")+'</ul></div>';
+  if(_shiftDigest.length&&!_shiftDismissed)shiftHtml='<div class="card shift"><div class="shift-head"><span class="shift-badge">\uD83D\uDD04 Consensus shifts'+(_shiftSince?" since "+esc(_shiftSince):"")+'</span><button class="shift-bell'+(S.notifyShifts?" on":"")+'" id="shift-notify" aria-label="Toggle shift notifications" title="Notify me of future consensus shifts">\uD83D\uDD14</button><button class="shift-x" id="shift-dismiss" aria-label="Dismiss">&times;</button></div><ul class="brief-list">'+_shiftDigest.map(function(l){return '<li><span class="brief-ico">'+l.ico+'</span><span>'+l.html+'</span></li>';}).join("")+'</ul></div>';
   id("tab-body").innerHTML=shiftHtml+briefHtml+'<p class="intro">Recent trades from top fund managers, congress members, and notable investors &mdash; scaled to your '+fmt(S.budget)+' budget. Data is delayed per disclosure rules.</p>'+sigHtml+consHtml+cgHtml+stkHtml+lbHtml+fb+cards;
   var _sx=id("shift-dismiss");if(_sx)_sx.addEventListener("click",function(){_shiftDismissed=true;render();});
+  var _sb=id("shift-notify");if(_sb)_sb.addEventListener("click",toggleShiftNotify);
   bindBody();
 }
 function renderStrategies(){
@@ -2609,6 +2621,7 @@ function buildCmds(){
   out.push({ico:"&#8681;",lbl:"Import your positions",hint:"import",run:function(){closeCmdk();openImport();}});
   out.push({ico:"&#128190;",lbl:"Save current filter view\u2026",hint:"view",run:function(){var nm=prompt("Name this view:");if(nm&&saveCurrentView(nm)&&typeof toastMsg==="function")toastMsg("View \""+nm+"\" saved","var(--accent-green)");}});
   loadViews().forEach(function(vw){out.push({ico:"&#128193;",lbl:"View: "+vw.name,hint:"view",run:function(){applyView(vw.f);}});});
+  out.push({ico:"&#128276;",lbl:(S.notifyShifts?"Disable":"Enable")+" consensus-shift notifications",hint:"alerts",run:function(){closeCmdk();toggleShiftNotify();}});
   out.push({ico:"&#9000;",lbl:"Keyboard shortcuts",hint:"help",run:openHelp});
   var seenTk={};consensus().forEach(function(e){if(seenTk[e.ticker])return;seenTk[e.ticker]=1;out.push({ico:"&#128200;",lbl:e.ticker+" \u2014 "+(e.co||""),hint:"ticker",run:function(){closeCmdk();openDrawer(e.ticker);}});});
   var seenTr={};topTraders.forEach(function(t){if(seenTr[t.name])return;seenTr[t.name]=1;out.push({ico:"&#128100;",lbl:t.name,hint:"trader",run:function(){S.tab="trades";S.trader=t.name;_sDirty=true;render();}});out.push({ico:"&#129514;",lbl:"Backtest "+t.name,hint:"backtest",run:function(){closeCmdk();openBacktest(t.name);}});});
