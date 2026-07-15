@@ -81,7 +81,7 @@ Key helpers: `esc()` (XSS escape — **every data string interpolated into inner
 
 ---
 
-## 5. Feature map (15 waves)
+## 5. Feature map (16 waves)
 
 | Wave | Feature |
 |---|---|
@@ -100,6 +100,7 @@ Key helpers: `esc()` (XSS escape — **every data string interpolated into inner
 | 13 | **FX** — modal spring-in, staggered tab entrance, toast slide, equity-curve draw-in, chip pop, micro-interactions |
 | 14 | **FX** — animated P&L count-ups (`_cv`/`animateCounts`), candlestick grow-in, banner sheen |
 | 15 | **FX** — gradient title, skeleton-shimmer loading, active-tab underline, card glow, empty-state float, gauge needle sweep |
+| 16 | **Tactile & delight** — click ripple on controls (delegated), confetti `burstFx()` + toast on a real paper-trade add (gated on `S.paper.length` growth), drifting header aurora glow |
 
 ---
 
@@ -163,7 +164,7 @@ Spawned 3 parallel `akira` plan-mode agents — **Bugs**, **Perf**, **UX/a11y** 
 
 ---
 
-## 9. Animation system (Waves 13–15)
+## 9. Animation system (Waves 13–16)
 
 - All effects use **only `transform` / `opacity`** (compositor-friendly).
 - **Every** new animation is disabled in the extended `@media(prefers-reduced-motion:reduce)` block (kept in lockstep each wave).
@@ -171,6 +172,10 @@ Spawned 3 parallel `akira` plan-mode agents — **Bugs**, **Perf**, **UX/a11y** 
 - **Count-ups:** `_cv(key,val,pre,suf,dec)` renders a `<span class="cv" data-cv…>`; `animateCounts()` rAF-tweens changed values (compares `_cvPrev[key]`), skips if no `requestAnimationFrame` (harness-safe) or reduced-motion.
 - **Entrance gating:** tab-content cascade fires only on real tab change (`_prevRenderTab`), not on 30s quote-refresh re-renders.
 - **Candles grow-in:** `transform-box:fill-box; transform-origin:center bottom; scaleY` — final state is identity so it's correct even if `transform-box` is unsupported.
+- **Ripple** (`.rp`): one delegated `document` click listener matches a fixed set of self-contained rounded controls (which get `position:relative;overflow:hidden`); a sized `<span>` is placed at the click point, animated `scale`, removed after 520ms. Skipped early when `_reduceFx()`.
+- **Confetti** (`burstFx(x,y)`): spawns a `position:fixed` wrapper of 18 `<i>` particles with randomized `--cx/--cy/--cr/--cd` custom props → `confPop` keyframe; wrapper removed after 1.4s. Fired from the paper-add handler **only when a trade was actually added** (guards against dup/budget early-returns), paired with a success toast.
+- **Header aurora** (`.header::before`): two soft radial gradients drift horizontally (`auroraDrift`, `translateX` only). Kept to `inset:0` deliberately — **no `overflow:hidden` on the header** so keyboard focus rings on the theme/density buttons are never clipped.
+- **Dual reduced-motion guard:** FX are disabled in both CSS (`.header::before`, `.rp,.conf` set to `animation:none!important`) **and** JS (`_reduceFx()` returns early in `burstFx`/ripple), so nothing spawns even if CSS is bypassed.
 
 ---
 
