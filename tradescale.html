@@ -541,6 +541,20 @@ body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 .pf-mini{background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.76rem;cursor:pointer}
 .pf-mini:hover:not([disabled]){border-color:var(--accent-blue);color:var(--text-primary)}
 .pf-mini[disabled]{opacity:.4;cursor:not-allowed}
+.pf-cmp{border-color:var(--accent-blue);color:var(--accent-blue)}
+#pf-compare-modal{position:fixed;inset:0;z-index:11000;background:rgba(6,10,18,.72);backdrop-filter:blur(3px);overflow:auto;padding:24px 12px;display:flex;align-items:flex-start;justify-content:center}
+.cmp-inner{max-width:920px;width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:0 24px 80px rgba(0,0,0,.6);animation:tsFadeUp .3s ease both}
+.cmp-hd{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--accent-blue);padding-bottom:10px;margin-bottom:12px}
+.cmp-hd b{font-size:1.15rem}
+.cmp-scroll{overflow-x:auto}
+.cmp-tbl{min-width:760px}
+.cmp-tbl td,.cmp-tbl th{white-space:nowrap}
+.cmp-sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.cmp-tag{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;background:var(--bg-secondary);border:1px solid var(--border);border-radius:5px;padding:1px 5px;color:var(--text-muted)}
+.cmp-tag.cmp-best{background:rgba(46,189,133,.16);border-color:var(--accent-green);color:var(--accent-green)}
+.cmp-tbl tr.cmp-win td{background:rgba(46,189,133,.06)}
+.cmp-tbl tr.cmp-active td{box-shadow:inset 3px 0 0 var(--accent-blue)}
+.cmp-foot{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:.66rem;color:var(--text-muted);line-height:1.4}
 .card.shift{border-color:var(--accent-blue)}
 .shift-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .shift-badge{font-weight:800;font-size:.9rem;color:var(--accent-blue)}
@@ -840,14 +854,58 @@ function pfBarHtml(){
   return '<div class="pf-bar"><span class="pf-bar-l">Portfolio</span><select id="pf-select" aria-label="Active portfolio">'+opts+'</select>'+
     '<button class="pf-mini" id="pf-new" title="Create a new portfolio">+ New</button>'+
     '<button class="pf-mini" id="pf-rename" title="Rename this portfolio">Rename</button>'+
-    '<button class="pf-mini" id="pf-delete" title="Delete this portfolio"'+(pfList().length<=1?" disabled":"")+'>Delete</button></div>';
+    '<button class="pf-mini" id="pf-delete" title="Delete this portfolio"'+(pfList().length<=1?" disabled":"")+'>Delete</button>'+(pfList().length>1?'<button class="pf-mini pf-cmp" id="pf-compare" title="Compare all portfolios">\u21c4 Compare</button>':'')+'</div>';
 }
 function bindPfBar(){
   var sel=id("pf-select");if(sel)sel.addEventListener("change",function(e){switchPf(e.target.value);});
   var n=id("pf-new");if(n)n.addEventListener("click",createPf);
   var rn=id("pf-rename");if(rn)rn.addEventListener("click",renamePf);
   var dl=id("pf-delete");if(dl)dl.addEventListener("click",deletePf);
+  var cp=id("pf-compare");if(cp)cp.addEventListener("click",comparePf);
 }
+function portfolioStats(pf){
+  var paper=(pf&&Array.isArray(pf.paper))?pf.paper:[];
+  var cost=0,val=0,pnl=0,w=0,tks={};
+  paper.forEach(function(p){var r=posPnl(p);cost+=p.cost;val+=r.val;pnl+=r.pnl;if(r.pnl>=0)w++;tks[p.ticker]=(tks[p.ticker]||0)+r.val;});
+  var pct=cost>0?pnl/cost*100:0;
+  var spyNow=curPrice("SPY"),bc=0,br=0;
+  paper.forEach(function(p){if(spyNow&&p.spyEntry>0){bc+=p.cost;br+=p.cost*((spyNow-p.spyEntry)/p.spyEntry);}});
+  var bpct=bc>0?br/bc*100:null,vs=bpct===null?null:pct-bpct;
+  var top="",topV=-1;Object.keys(tks).forEach(function(k){if(tks[k]>topV){topV=tks[k];top=k;}});
+  var hhi=0;if(val>0)Object.keys(tks).forEach(function(k){var x=tks[k]/val;hhi+=x*x;});hhi=hhi*10000;
+  var grade=hhi<=0?"\u2014":hhi<1500?"A":hhi<2500?"B":hhi<4000?"C":"D";
+  return {n:paper.length,cost:cost,val:val,pnl:pnl,pct:pct,vs:vs,w:w,top:top,hhi:hhi,grade:grade};
+}
+function comparePf(){
+  if(RO)return;
+  var list=pfList();if(list.length<2)return;
+  _syncActive();
+  var stats=list.map(function(pf){return {pf:pf,s:portfolioStats(pf)};});
+  var bestRet=Math.max.apply(null,stats.map(function(x){return x.s.n?x.s.pct:-Infinity;}));
+  var rows=stats.map(function(x,i){
+    var st=x.s,pcls=st.pnl>=0?"pnl-pos":"pnl-neg",psg=st.pnl>=0?"+":"";
+    var vsTxt=st.vs===null?"\u2014":(st.vs>=0?"+":"")+st.vs.toFixed(1)+"%",vcls=st.vs===null?"":(st.vs>=0?"pnl-pos":"pnl-neg");
+    var win=(st.n&&st.pct===bestRet&&bestRet>-Infinity)?' cmp-win':'';
+    return '<tr class="'+(x.pf.id===S.activePf?"cmp-active":"")+win+'">'+
+      '<td><span class="cmp-sw" style="background:'+_pfPalette(i)+'"></span><b>'+esc(x.pf.name)+'</b>'+(x.pf.id===S.activePf?' <span class="cmp-tag">active</span>':'')+(win?' <span class="cmp-tag cmp-best">best</span>':'')+'</td>'+
+      '<td>$'+x.pf.budget+'</td><td>'+st.n+'</td><td>$'+st.cost.toFixed(0)+'</td><td>$'+st.val.toFixed(0)+'</td>'+
+      '<td class="'+pcls+'">'+psg+'$'+st.pnl.toFixed(0)+'</td>'+
+      '<td class="'+pcls+'">'+(st.pct>=0?"+":"")+st.pct.toFixed(1)+'%</td>'+
+      '<td class="'+vcls+'">'+vsTxt+'</td>'+
+      '<td>'+(st.top?esc(st.top):"\u2014")+'</td>'+
+      '<td>'+st.grade+'</td>'+
+      '<td>'+st.w+'/'+st.n+'</td></tr>';
+  }).join("");
+  var old=document.getElementById("pf-compare-modal");if(old)old.parentNode.removeChild(old);
+  var m=document.createElement("div");m.id="pf-compare-modal";
+  m.innerHTML='<div class="cmp-inner"><div class="cmp-hd"><b>\u21c4 Portfolio Comparison</b><button class="close-btn" id="cmp-close">Close</button></div>'+
+    '<div class="cmp-scroll"><table class="rp-tbl cmp-tbl"><thead><tr><th>Portfolio</th><th>Budget</th><th>Pos</th><th>Invested</th><th>Value</th><th>P&amp;L</th><th>Return</th><th>vs S&amp;P</th><th>Top</th><th>Div.</th><th>Win</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="cmp-foot">Returns are hypothetical, computed from live prices against each position\u2019s entry. \u201cDiv.\u201d = concentration grade (A diversified \u2192 D concentrated). Not investment advice.</div></div>';
+  document.body.appendChild(m);
+  var cb=document.getElementById("cmp-close");if(cb)cb.addEventListener("click",closeCompare);
+  m.addEventListener("click",function(e){if(e.target===m)closeCompare();});
+}
+function closeCompare(){var m=document.getElementById("pf-compare-modal");if(m)m.parentNode.removeChild(m);}
 var S=loadState();
 var PRICES={};
 var _sDirty=false;
@@ -2443,6 +2501,7 @@ function buildCmds(){
   out.push({ico:"&#128190;",lbl:"Export trades to CSV",hint:"action",run:function(){S.tab="portfolio";render();setTimeout(exportCsv,50);}});
   out.push({ico:"&#128203;",lbl:"Generate portfolio report (PDF)",hint:"action",run:function(){closeCmdk();generateReport();}});
   out.push({ico:"&#128279;",lbl:"Share read-only portfolio snapshot",hint:"action",run:function(){closeCmdk();sharePortfolio();}});
+  if(typeof pfList==="function"&&pfList().length>1)out.push({ico:"&#8644;",lbl:"Compare all portfolios",hint:"action",run:function(){closeCmdk();comparePf();}});
   out.push({ico:"&#128279;",lbl:"Share current view",hint:"action",run:function(){if(typeof shareView==="function")shareView();}});
   out.push({ico:"&#128269;",lbl:"Consensus scanner",hint:"scan",run:function(){closeCmdk();openScanner();}});
   out.push({ico:"&#8681;",lbl:"Import your positions",hint:"import",run:function(){closeCmdk();openImport();}});
