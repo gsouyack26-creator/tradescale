@@ -517,6 +517,12 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .ro-banner .ro-ic{font-size:1.5rem;line-height:1}
 .ro-banner .ro-tx{flex:1;font-size:.84rem;line-height:1.4;min-width:180px}
 body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
+.pf-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px}
+.pf-bar-l{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:700}
+.pf-bar select{background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.85rem;font-weight:600;flex:1;min-width:150px}
+.pf-mini{background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.76rem;cursor:pointer}
+.pf-mini:hover:not([disabled]){border-color:var(--accent-blue);color:var(--text-primary)}
+.pf-mini[disabled]{opacity:.4;cursor:not-allowed}
 .card.shift{border-color:var(--accent-blue)}
 .shift-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .shift-badge{font-weight:800;font-size:.9rem;color:var(--accent-blue)}
@@ -783,9 +789,46 @@ var sources=[
 function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
-    return {budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
+    var r={budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
             sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",density:s.density||"comfortable",theme:s.theme||"quant",wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
-  }catch(e){return {budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",wlCols:{name:true,spark:true,type:true},open:{},paper:[]};}
+    _migratePf(s,r);return r;
+  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
+}
+function _migratePf(s,r){
+  var pf=s&&s.portfolios;
+  if(Array.isArray(pf)&&pf.length){
+    r.portfolios=pf.filter(function(p){return p&&typeof p==="object";}).map(function(p,i){return {id:String(p.id||("pf"+i)),name:String(p.name||("Portfolio "+(i+1))).slice(0,40),budget:Math.max(0,Number(p.budget)||500),paper:_sanPaper(p.paper)};});
+    if(!r.portfolios.length)r.portfolios=null;
+  }
+  if(!r.portfolios)r.portfolios=[{id:"default",name:"My Portfolio",budget:r.budget,paper:r.paper}];
+  var act=String((s&&s.activePf)||"");
+  var found=r.portfolios.some(function(p){return p.id===act;});
+  r.activePf=found?act:r.portfolios[0].id;
+  var a=null;for(var i=0;i<r.portfolios.length;i++)if(r.portfolios[i].id===r.activePf)a=r.portfolios[i];
+  if(a){r.paper=a.paper;r.budget=a.budget;}
+}
+function _activePf(){if(!Array.isArray(S.portfolios)||!S.portfolios.length)return null;for(var i=0;i<S.portfolios.length;i++)if(S.portfolios[i].id===S.activePf)return S.portfolios[i];return S.portfolios[0];}
+function _syncActive(){if(RO)return;var a=_activePf();if(a){a.paper=S.paper;a.budget=S.budget;}}
+function _loadActive(){var a=_activePf();if(a){S.paper=Array.isArray(a.paper)?a.paper:[];S.budget=Math.max(0,Number(a.budget)||500);}}
+function pfList(){return Array.isArray(S.portfolios)?S.portfolios:[];}
+function _pfHistKey(){return (S.activePf&&S.activePf!=="default")?("ts_pf_hist_"+S.activePf):"ts_pf_hist";}
+function switchPf(pid){if(RO)return;_syncActive();S.activePf=pid;_loadActive();_invalidateMemo();_sDirty=true;save(true);if(typeof updatePfBadge==="function")updatePfBadge();render();}
+function createPf(){if(RO)return;var nm=prompt("Name your new portfolio:","Portfolio "+(pfList().length+1));if(nm===null)return;nm=(nm.trim()||("Portfolio "+(pfList().length+1))).slice(0,40);_syncActive();var pid="pf"+Date.now().toString(36);S.portfolios.push({id:pid,name:nm,budget:S.budget,paper:[]});S.activePf=pid;_loadActive();_invalidateMemo();_sDirty=true;save(true);if(typeof toastMsg==="function")toastMsg("Portfolio \""+nm+"\" created","var(--accent-green)");render();}
+function renamePf(){if(RO)return;var a=_activePf();if(!a)return;var nm=prompt("Rename portfolio:",a.name);if(nm===null)return;a.name=(nm.trim()||a.name).slice(0,40);_sDirty=true;save(true);render();}
+function deletePf(){if(RO)return;if(pfList().length<=1){if(typeof toastMsg==="function")toastMsg("Can't delete your only portfolio","var(--accent-red)");return;}var a=_activePf();if(!a)return;if(!confirm('Delete portfolio "'+a.name+'" and its positions? This cannot be undone.'))return;try{localStorage.removeItem(_pfHistKey());}catch(e){}S.portfolios=S.portfolios.filter(function(p){return p.id!==a.id;});S.activePf=S.portfolios[0].id;_loadActive();_invalidateMemo();_sDirty=true;save(true);if(typeof updatePfBadge==="function")updatePfBadge();render();}
+function pfBarHtml(){
+  if(RO)return "";
+  var opts=pfList().map(function(p){return '<option value="'+esc(p.id)+'"'+(p.id===S.activePf?' selected':'')+'>'+esc(p.name)+' \u2014 $'+p.budget+'</option>';}).join("");
+  return '<div class="pf-bar"><span class="pf-bar-l">Portfolio</span><select id="pf-select" aria-label="Active portfolio">'+opts+'</select>'+
+    '<button class="pf-mini" id="pf-new" title="Create a new portfolio">+ New</button>'+
+    '<button class="pf-mini" id="pf-rename" title="Rename this portfolio">Rename</button>'+
+    '<button class="pf-mini" id="pf-delete" title="Delete this portfolio"'+(pfList().length<=1?" disabled":"")+'>Delete</button></div>';
+}
+function bindPfBar(){
+  var sel=id("pf-select");if(sel)sel.addEventListener("change",function(e){switchPf(e.target.value);});
+  var n=id("pf-new");if(n)n.addEventListener("click",createPf);
+  var rn=id("pf-rename");if(rn)rn.addEventListener("click",renamePf);
+  var dl=id("pf-delete");if(dl)dl.addEventListener("click",deletePf);
 }
 var S=loadState();
 var PRICES={};
@@ -795,7 +838,7 @@ var _shiftDigest=[],_shiftSince="",_shiftDismissed=false;
 var _consMemo=null,_csMemo=null,_memoTrades=null,_sigMemo=null,_streakMemo=null,_lbMemo=null,_budgetT=null,_stockSeq=0;
 function _invalidateMemo(){_consMemo=null;_csMemo=null;_memoTrades=null;_sigMemo=null;_streakMemo=null;_lbMemo=null;}
 function _sanPaper(a){if(!Array.isArray(a))return [];var num=function(v){var x=Number(v);return isFinite(x)?x:0;};return a.filter(function(p){return p&&typeof p==="object";}).map(function(p){p.entry=num(p.entry);p.shares=num(p.shares);p.cost=num(p.cost);return p;}).filter(function(p){return p.shares>0&&p.cost>0;});}
-function save(force){if(RO)return;if(!force&&!_sDirty)return;try{localStorage.setItem("ts_state",JSON.stringify(S));_sDirty=false;}catch(e){}}
+function save(force){if(RO)return;if(!force&&!_sDirty)return;_syncActive();try{localStorage.setItem("ts_state",JSON.stringify(S));_sDirty=false;}catch(e){}}
 
 // ---- DISCLAIMER ----
 function initDisc(){
@@ -912,7 +955,7 @@ function removePaper(pid){
 }
 
 function localDate(){var n=new Date();return new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().slice(0,10);}
-function pfHistory(){try{var h=JSON.parse(localStorage.getItem("ts_pf_hist")||"[]");return Array.isArray(h)?h.filter(function(x){return x&&typeof x.v==="number"&&x.d;}):[];}catch(e){return [];}}
+function pfHistory(){try{var h=JSON.parse(localStorage.getItem(_pfHistKey())||"[]");return Array.isArray(h)?h.filter(function(x){return x&&typeof x.v==="number"&&x.d;}):[];}catch(e){return [];}}
 function snapshotPortfolio(){
   if(RO)return;
   if(!S.paper.length)return;
@@ -923,7 +966,7 @@ function snapshotPortfolio(){
   var sp=curPrice("SPY")||0;
   if(h.length&&h[h.length-1].d===d){if(Math.abs(h[h.length-1].v-v)<0.01)return;h[h.length-1].v=v;h[h.length-1].s=sp;}else h.push({d:d,v:v,s:sp});
   if(h.length>180)h=h.slice(h.length-180);
-  try{localStorage.setItem("ts_pf_hist",JSON.stringify(h));}catch(e){}
+  try{localStorage.setItem(_pfHistKey(),JSON.stringify(h));}catch(e){}
   if(!_athReady){_athReady=true;_lastAth=priorPeak;return;}
   if(priorPeak!=null&&h.length>=2&&v>0&&v>priorPeak+Math.max(0.5,Math.abs(priorPeak)*0.0005)&&(_lastAth==null||v>_lastAth)){
     _lastAth=v;celebrateAth(v);
@@ -1177,7 +1220,7 @@ function doImport(){
   if(!r.positions.length){id("imp-msg").innerHTML='<span class="pnl-neg">All '+(r.errors.length?r.errors.length+" invalid, ":"")+_dupes+' row'+((_dupes===1&&!r.errors.length)?"":"s")+" already in portfolio.</span>";return;}
   S.paper=S.paper.concat(r.positions);_sDirty=true;
   // save() silently swallows storage errors; test directly so the warning actually fires
-  var _saveOk=true;try{localStorage.setItem("ts_state",JSON.stringify(S));_sDirty=false;}catch(e){_saveOk=false;}
+  _syncActive();var _saveOk=true;try{localStorage.setItem("ts_state",JSON.stringify(S));_sDirty=false;}catch(e){_saveOk=false;}
   if(!_saveOk&&typeof toastMsg==="function")toastMsg("Storage full — import added to session but may not persist","var(--accent-red)");
   closeImport();S.tab="portfolio";render();
   var _skipped=r.errors.length+_dupes;
@@ -1577,9 +1620,10 @@ function renderPortfolio(){
   var body=id("tab-body");
   if(document.body&&document.body.classList)document.body.classList.toggle("ro-mode",RO);
   if(!S.paper.length){
-    body.innerHTML='<div class="empty"><div>&#128188;</div>'+
+    body.innerHTML=pfBarHtml()+'<div class="empty"><div>&#128188;</div>'+
       '<p>No paper trades yet.</p>'+
       '<p style="margin-top:8px;font-size:0.82rem">Go to <strong>Live Trades</strong> and tap <span style="color:var(--accent-green)">+ Paper Trade This</span> on any trade to copy it at your $'+S.budget+' budget. Track hypothetical P&amp;L here &mdash; no real money.</p></div>';
+    bindPfBar();
     return;
   }
   var totalCost=0,totalVal=0,totalPnl=0,wins=0;
@@ -1635,9 +1679,10 @@ function renderPortfolio(){
   var roBanner=RO?('<div class="ro-banner"><span class="ro-ic">\uD83D\uDCF8</span><div class="ro-tx"><b>'+esc(_snapMeta.title)+'</b> &mdash; shared read-only snapshot'+(_snapMeta.asOf?' &bull; as of '+esc(_snapMeta.asOf):'')+'. Prices are live from your device; nothing is saved here.</div><button class="close-btn" id="ro-exit" style="border-color:var(--accent-blue);color:var(--accent-blue)">Open my own TradeScale &rarr;</button></div>'):'';
   var intro=RO?'':'<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>';
   var footer='<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button>'+(RO?'':'<button class="close-btn" id="share-snap" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#128279; Share Snapshot</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button>')+'</div>';
-  body.innerHTML=roBanner+intro+
+  body.innerHTML=pfBarHtml()+roBanner+intro+
     summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+cards+
     footer;
+  bindPfBar();
   var grp=id("gen-report");if(grp)grp.addEventListener("click",generateReport);
   var ssnap=id("share-snap");if(ssnap)ssnap.addEventListener("click",sharePortfolio);
   var rox=id("ro-exit");if(rox)rox.addEventListener("click",function(){try{location.hash="";}catch(e){}location.reload();});
