@@ -468,6 +468,24 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .eq-hd b{font-size:.95rem;color:var(--text-primary);text-transform:none;letter-spacing:0}
 .eq-svg{width:100%;height:auto;display:block}
 .eq-empty{font-size:.78rem;color:var(--text-muted);padding:6px 0}
+.attr-wrap{grid-column:1/-1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:14px;margin:16px 0}
+.attr-hd{display:flex;justify-content:space-between;align-items:baseline;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:12px;flex-wrap:wrap;gap:4px}
+.attr-hd b{font-size:.95rem;color:var(--text-primary);text-transform:none;letter-spacing:0}
+.bench-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+.bench-cell{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px}
+.bench-cell .bc-v{font-size:1.15rem;font-weight:800}
+.bench-cell .bc-l{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);margin-top:4px}
+.bench-building{grid-column:1/-1}
+.bench-building .bc-l{text-transform:none;letter-spacing:0;line-height:1.4}
+.attr-list{display:flex;flex-direction:column;gap:8px}
+.attr-row{display:grid;grid-template-columns:12px 1fr 90px auto;align-items:center;gap:10px;font-size:.82rem}
+.attr-sw{width:12px;height:12px;border-radius:3px}
+.attr-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attr-nm em{color:var(--text-muted);font-style:normal;font-size:.72rem;margin-left:4px}
+.attr-bar{background:var(--bg-card);border-radius:4px;height:8px;overflow:hidden}
+.attr-bar i{display:block;height:100%;border-radius:4px}
+.attr-pnl{text-align:right;font-weight:700;white-space:nowrap}
+.attr-pnl em{display:block;font-style:normal;font-weight:500;font-size:.7rem;opacity:.8}
 
 /* ==== Wave 9: consensus scanner ==== */
 .scan-box{width:min(720px,95vw);max-height:92vh;overflow:auto}
@@ -863,7 +881,8 @@ function snapshotPortfolio(){
   if(v==null||isNaN(v))return;
   var d=localDate(),h=pfHistory();
   var priorPeak=null;for(var i=0;i<h.length;i++){if(priorPeak==null||h[i].v>priorPeak)priorPeak=h[i].v;}
-  if(h.length&&h[h.length-1].d===d){if(Math.abs(h[h.length-1].v-v)<0.01)return;h[h.length-1].v=v;}else h.push({d:d,v:v});
+  var sp=curPrice("SPY")||0;
+  if(h.length&&h[h.length-1].d===d){if(Math.abs(h[h.length-1].v-v)<0.01)return;h[h.length-1].v=v;h[h.length-1].s=sp;}else h.push({d:d,v:v,s:sp});
   if(h.length>180)h=h.slice(h.length-180);
   try{localStorage.setItem("ts_pf_hist",JSON.stringify(h));}catch(e){}
   if(!_athReady){_athReady=true;_lastAth=priorPeak;return;}
@@ -1332,6 +1351,45 @@ function renderSources(){
 }
 
 function _pfPalette(i){var p=["#4f8ff0","#2ebd85","#f5a623","#c74fef","#ef4f6b","#43c6e8","#f0df7c","#8f9bb3","#5ce0b0","#e07a5c"];return p[i%p.length];}
+function benchStats(){
+  var h=pfHistory().filter(function(x){return typeof x.s==="number"&&x.s>0&&typeof x.v==="number"&&x.v>0;});
+  var pr=[],sr=[];
+  for(var i=1;i<h.length;i++){if(h[i-1].v>0&&h[i-1].s>0){pr.push((h[i].v-h[i-1].v)/h[i-1].v);sr.push((h[i].s-h[i-1].s)/h[i-1].s);}}
+  if(pr.length<4)return {ready:false,n:pr.length};
+  var mp=pr.reduce(function(a,b){return a+b;},0)/pr.length,ms=sr.reduce(function(a,b){return a+b;},0)/sr.length;
+  var cov=0,vs=0,vp=0;
+  for(var j=0;j<pr.length;j++){cov+=(pr[j]-mp)*(sr[j]-ms);vs+=Math.pow(sr[j]-ms,2);vp+=Math.pow(pr[j]-mp,2);}
+  if(vs===0)return {ready:false,n:pr.length};
+  var beta=cov/vs,corr=(vp>0)?cov/Math.sqrt(vp*vs):0,alpha=(mp-beta*ms)*365*100;
+  return {ready:true,beta:beta,corr:corr,alpha:alpha,n:pr.length+1};
+}
+function attributionCard(){
+  if(S.paper.length<2)return "";
+  var funds={},order=[];
+  S.paper.forEach(function(p){var r=posPnl(p);var k=(p.fund||p.who||"Unknown");if(!funds[k]){funds[k]={cost:0,pnl:0,val:0,n:0};order.push(k);}var f=funds[k];f.cost+=p.cost;f.pnl+=r.pnl;f.val+=r.val;f.n++;});
+  var keys=order.sort(function(a,b){return funds[b].pnl-funds[a].pnl;});
+  var maxAbs=1;keys.forEach(function(k){var a=Math.abs(funds[k].pnl);if(a>maxAbs)maxAbs=a;});
+  var rows=keys.map(function(k,i){
+    var f=funds[k],ret=f.cost>0?f.pnl/f.cost*100:0,cls=f.pnl>=0?"pnl-pos":"pnl-neg",sign=f.pnl>=0?"+":"";
+    var w=Math.min(100,Math.abs(f.pnl)/maxAbs*100);
+    return '<div class="attr-row"><span class="attr-sw" style="background:'+_pfPalette(i)+'"></span>'+
+      '<span class="attr-nm">'+esc(k)+' <em>'+f.n+' pos</em></span>'+
+      '<span class="attr-bar"><i style="width:'+w.toFixed(1)+'%;background:'+(f.pnl>=0?"#2ebd85":"#ef4f6b")+'"></i></span>'+
+      '<span class="attr-pnl '+cls+'">'+sign+'$'+Math.abs(f.pnl).toFixed(0)+'<em>'+sign+ret.toFixed(1)+'%</em></span></div>';
+  }).join("");
+  var bs=benchStats(),betaBlk;
+  if(bs.ready){
+    var bcls=bs.beta>1.15?"pnl-neg":bs.beta<0.85?"pnl-pos":"";
+    betaBlk='<div class="bench-cell"><div class="bc-v '+bcls+'">'+bs.beta.toFixed(2)+'</div><div class="bc-l">Beta vs SPY</div></div>'+
+      '<div class="bench-cell"><div class="bc-v">'+bs.corr.toFixed(2)+'</div><div class="bc-l">Correlation</div></div>'+
+      '<div class="bench-cell"><div class="bc-v '+(bs.alpha>=0?"pnl-pos":"pnl-neg")+'">'+(bs.alpha>=0?"+":"")+bs.alpha.toFixed(1)+'%</div><div class="bc-l">Alpha (ann.)</div></div>';
+  }else{
+    betaBlk='<div class="bench-cell bench-building"><div class="bc-l">Beta &amp; alpha vs SPY build from daily snapshots \u2014 '+(bs.n||0)+'/4 paired days so far. Check back after a few days of price history.</div></div>';
+  }
+  return '<div class="attr-wrap"><div class="attr-hd"><b>Attribution &amp; Benchmark</b> <span>P&amp;L by source fund \u2022 risk vs S&amp;P 500</span></div>'+
+    '<div class="bench-row">'+betaBlk+'</div>'+
+    '<div class="attr-list">'+rows+'</div></div>';
+}
 function allocDonut(){
   var segs=S.paper.map(function(pos){var r=posPnl(pos);return {tk:pos.ticker,val:r.val};}).filter(function(x){return x.val>0;});
   var tot=segs.reduce(function(a,b){return a+b.val;},0);
@@ -1436,9 +1494,10 @@ function renderPortfolio(){
     '<div class="pf-stat"><div class="v '+tcls+'">'+_cv("pfPnl",Math.abs(totalPnl),(totalPnl>=0?"+$":"-$"),"",0)+'</div><div class="l">Total P&amp;L</div></div>'+
     '<div class="pf-stat"><div class="v '+tcls+'">'+_cv("pfRet",Math.abs(totPct),(totPct>=0?"+":"-"),"%",1)+'</div><div class="l">Return</div></div>'+
     '<div class="pf-stat"><div class="v">'+wins+'/'+S.paper.length+'</div><div class="l">Winners</div></div>'+
+    benchStat+
   '</div>';
   body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
-    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>':'')+cards+
+    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+cards+
     '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
   var exp=id("export-csv");
   if(exp)exp.addEventListener("click",exportCsv);
