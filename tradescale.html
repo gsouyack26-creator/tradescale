@@ -542,6 +542,7 @@ body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 .pf-mini:hover:not([disabled]){border-color:var(--accent-blue);color:var(--text-primary)}
 .pf-mini[disabled]{opacity:.4;cursor:not-allowed}
 .pf-cmp{border-color:var(--accent-blue);color:var(--accent-blue)}
+.pos-move{border-color:var(--accent-gold,#f5a623)!important;color:var(--accent-gold,#f5a623)!important;margin-right:6px}
 #pf-compare-modal{position:fixed;inset:0;z-index:11000;background:rgba(6,10,18,.72);backdrop-filter:blur(3px);overflow:auto;padding:24px 12px;display:flex;align-items:flex-start;justify-content:center}
 .cmp-inner{max-width:920px;width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:0 24px 80px rgba(0,0,0,.6);animation:tsFadeUp .3s ease both}
 .cmp-hd{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--accent-blue);padding-bottom:10px;margin-bottom:12px}
@@ -869,14 +870,48 @@ function pfBarHtml(){
   var opts=pfList().map(function(p){return '<option value="'+esc(p.id)+'"'+(p.id===S.activePf?' selected':'')+'>'+esc(p.name)+' \u2014 $'+p.budget+'</option>';}).join("");
   return '<div class="pf-bar"><span class="pf-bar-l">Portfolio</span><select id="pf-select" aria-label="Active portfolio">'+opts+'</select>'+
     '<button class="pf-mini" id="pf-new" title="Create a new portfolio">+ New</button>'+
+    '<button class="pf-mini" id="pf-clone" title="Duplicate this portfolio">Clone</button>'+
     '<button class="pf-mini" id="pf-rename" title="Rename this portfolio">Rename</button>'+
     '<button class="pf-mini" id="pf-delete" title="Delete this portfolio"'+(pfList().length<=1?" disabled":"")+'>Delete</button>'+(pfList().length>1?'<button class="pf-mini pf-cmp" id="pf-compare" title="Compare all portfolios">\u21c4 Compare</button>':'')+'</div>';
+}
+function clonePf(){
+  if(RO)return;_syncActive();var a=_activePf();if(!a)return;
+  var copy=[];try{copy=JSON.parse(JSON.stringify(a.paper||[]));}catch(e){copy=[];}
+  copy.forEach(function(p,i){p.pid="cl"+Date.now().toString(36)+i;});
+  var pid="pf"+Date.now().toString(36),nm=(a.name+" (copy)").slice(0,40);
+  S.portfolios.push({id:pid,name:nm,budget:a.budget,paper:copy});
+  S.activePf=pid;_loadActive();_invalidateMemo();_sDirty=true;save(true);
+  if(typeof updatePfBadge==="function")updatePfBadge();
+  if(typeof toastMsg==="function")toastMsg("Cloned to \""+nm+"\"","var(--accent-green)");
+  render();
+}
+function movePos(pid){
+  if(RO)return;
+  var others=pfList().filter(function(p){return p.id!==S.activePf;});
+  if(!others.length)return;
+  var pos=null;for(var i=0;i<S.paper.length;i++)if(S.paper[i].pid===pid)pos=S.paper[i];
+  if(!pos)return;
+  var menu=others.map(function(p,i){return (i+1)+") "+p.name;}).join("\n");
+  var ans=prompt("Move "+pos.ticker+" to which portfolio?\n"+menu+"\n\nEnter a number 1-"+others.length+":","1");
+  if(ans===null)return;
+  var idx=parseInt(ans,10)-1;
+  if(isNaN(idx)||idx<0||idx>=others.length)return;
+  var target=others[idx];
+  var np=Object.assign({},pos);np.pid="mv"+Date.now().toString(36)+Math.floor(Math.random()*1000);
+  if(!Array.isArray(target.paper))target.paper=[];
+  target.paper.push(np);
+  S.paper=S.paper.filter(function(x){return x.pid!==pid;});
+  _invalidateMemo();_sDirty=true;save(true);
+  if(typeof updatePfBadge==="function")updatePfBadge();
+  if(typeof toastMsg==="function")toastMsg(pos.ticker+" moved to \""+target.name+"\"","var(--accent-green)");
+  render();
 }
 function bindPfBar(){
   var sel=id("pf-select");if(sel)sel.addEventListener("change",function(e){switchPf(e.target.value);});
   var n=id("pf-new");if(n)n.addEventListener("click",createPf);
   var rn=id("pf-rename");if(rn)rn.addEventListener("click",renamePf);
   var dl=id("pf-delete");if(dl)dl.addEventListener("click",deletePf);
+  var cl=id("pf-clone");if(cl)cl.addEventListener("click",clonePf);
   var cp=id("pf-compare");if(cp)cp.addEventListener("click",comparePf);
 }
 function portfolioStats(pf){
@@ -1777,7 +1812,7 @@ function renderPortfolio(){
         (pos.who?'<div style="color:var(--text-muted);font-size:0.72rem;margin-top:2px">Copied from '+esc(pos.who)+' &bull; '+esc(pos.fund)+' &bull; '+esc(pos.date)+'</div>':'')+
       '</div><div style="display:flex;align-items:center;gap:10px">'+
         ((CG_ID[pos.ticker]||CRYPTO_LIVE[pos.ticker])&&CRYPTO_LIVE[pos.ticker]&&CRYPTO_LIVE[pos.ticker].spark?'<span class="pos-spark" title="7-day price trend">'+sparkSvg(CRYPTO_LIVE[pos.ticker].spark,CRYPTO_LIVE[pos.ticker].chg24>=0)+'</span>':'')+
-        '<button class="close-btn" data-close="'+pos.pid+'">Close</button></div></div>'+
+        (pfList().length>1&&!RO?'<button class="close-btn pos-move" data-move="'+pos.pid+'" title="Move to another portfolio">Move</button>':'')+'<button class="close-btn" data-close="'+pos.pid+'">Close</button></div></div>'+
       '<div class="pos-grid">'+
         '<div><div class="pl">Shares</div><div class="pv">'+pos.shares.toFixed(4)+'</div></div>'+
         '<div><div class="pl">Entry</div><div class="pv">$'+pos.entry.toFixed(2)+'</div></div>'+
@@ -1833,6 +1868,9 @@ function renderPortfolio(){
   });
   document.querySelectorAll("[data-note]").forEach(function(b){
     b.addEventListener("click",function(e){noteEdit(e.currentTarget.getAttribute("data-note"));});
+  });
+  document.querySelectorAll("[data-move]").forEach(function(b){
+    b.addEventListener("click",function(e){movePos(e.currentTarget.getAttribute("data-move"));});
   });
 }
 
