@@ -513,6 +513,10 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .rp-dir{font-size:.66rem;color:var(--text-muted)}
 .rp-foot{margin-top:18px;padding-top:12px;border-top:1px solid var(--border);font-size:.66rem;color:var(--text-muted);line-height:1.4}
 .rp-actions{margin-top:16px;display:flex;gap:10px;justify-content:flex-end}
+.ro-banner{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,rgba(79,143,240,.14),rgba(79,143,240,.04));border:1px solid var(--accent-blue);border-radius:12px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap}
+.ro-banner .ro-ic{font-size:1.5rem;line-height:1}
+.ro-banner .ro-tx{flex:1;font-size:.84rem;line-height:1.4;min-width:180px}
+body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 
 /* ==== Wave 9: consensus scanner ==== */
 .scan-box{width:min(720px,95vw);max-height:92vh;overflow:auto}
@@ -781,10 +785,11 @@ function loadState(){
 var S=loadState();
 var PRICES={};
 var _sDirty=false;
+var RO=false,_snapMeta=null;
 var _consMemo=null,_csMemo=null,_memoTrades=null,_sigMemo=null,_streakMemo=null,_lbMemo=null,_budgetT=null,_stockSeq=0;
 function _invalidateMemo(){_consMemo=null;_csMemo=null;_memoTrades=null;_sigMemo=null;_streakMemo=null;_lbMemo=null;}
 function _sanPaper(a){if(!Array.isArray(a))return [];var num=function(v){var x=Number(v);return isFinite(x)?x:0;};return a.filter(function(p){return p&&typeof p==="object";}).map(function(p){p.entry=num(p.entry);p.shares=num(p.shares);p.cost=num(p.cost);return p;}).filter(function(p){return p.shares>0&&p.cost>0;});}
-function save(force){if(!force&&!_sDirty)return;try{localStorage.setItem("ts_state",JSON.stringify(S));_sDirty=false;}catch(e){}}
+function save(force){if(RO)return;if(!force&&!_sDirty)return;try{localStorage.setItem("ts_state",JSON.stringify(S));_sDirty=false;}catch(e){}}
 
 // ---- DISCLAIMER ----
 function initDisc(){
@@ -903,6 +908,7 @@ function removePaper(pid){
 function localDate(){var n=new Date();return new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().slice(0,10);}
 function pfHistory(){try{var h=JSON.parse(localStorage.getItem("ts_pf_hist")||"[]");return Array.isArray(h)?h.filter(function(x){return x&&typeof x.v==="number"&&x.d;}):[];}catch(e){return [];}}
 function snapshotPortfolio(){
+  if(RO)return;
   if(!S.paper.length)return;
   var v=0;S.paper.forEach(function(p){v+=posPnl(p).val;});
   if(v==null||isNaN(v))return;
@@ -1052,6 +1058,33 @@ function shareView(){
   function done(){if(btn){var o=btn.innerHTML;btn.innerHTML="\u2713 Link copied!";setTimeout(function(){btn.innerHTML=o;},1600);}}
   try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,function(){prompt("Copy this link:",url);});}else{prompt("Copy this link:",url);}}
   catch(e){prompt("Copy this link:",url);}
+}
+function _b64e(str){try{return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,function(m,h){return String.fromCharCode(parseInt(h,16));})).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}catch(e){return null;}}
+function _b64d(b64){try{b64=String(b64).replace(/-/g,"+").replace(/_/g,"/");return decodeURIComponent(Array.prototype.map.call(atob(b64),function(c){return "%"+("00"+c.charCodeAt(0).toString(16)).slice(-2);}).join(""));}catch(e){return null;}}
+function loadSnapshot(){
+  var h=(location.hash||"").replace(/^#/,"");
+  var m=/(?:^|&)snap=([^&]+)/.exec(h);
+  if(!m)return false;
+  var json=_b64d(m[1]);if(!json)return false;
+  var snap;try{snap=JSON.parse(json);}catch(e){return false;}
+  if(!snap||!Array.isArray(snap.p))return false;
+  var paper=snap.p.map(function(a,i){if(!Array.isArray(a))return null;return {pid:"snap"+i,ticker:String(a[0]||""),co:String(a[1]||""),dir:a[2]==="SHORT"?"SHORT":"LONG",entry:Number(a[3])||0,shares:Number(a[4])||0,cost:Number(a[5])||0,date:String(a[6]||""),spyEntry:Number(a[7])||0,who:String(a[8]||""),fund:String(a[9]||"")};}).filter(function(p){return p&&p.shares>0&&p.cost>0;});
+  if(!paper.length)return false;
+  RO=true;S.paper=paper;S.budget=Math.max(0,Number(snap.b)||500);S.tab="portfolio";
+  _snapMeta={title:String(snap.t||"Shared Portfolio").slice(0,80),asOf:String(snap.d||"").slice(0,40)};
+  return true;
+}
+function sharePortfolio(){
+  if(!S.paper.length){if(typeof toastMsg==="function")toastMsg("No positions to share \u2014 add paper trades first","var(--accent-red)");return;}
+  var snap={v:1,t:"Smart-Money Portfolio",b:S.budget,d:GEN_STR||localDate(),
+    p:S.paper.map(function(p){return [p.ticker,p.co,p.dir,p.entry,p.shares,p.cost,p.date,p.spyEntry||0,p.who||"",p.fund||""];})};
+  var b64=_b64e(JSON.stringify(snap));
+  if(!b64){if(typeof toastMsg==="function")toastMsg("Could not build snapshot link","var(--accent-red)");return;}
+  var url=location.origin+location.pathname+location.search+"#snap="+b64;
+  if(url.length>28000){if(typeof toastMsg==="function")toastMsg("Portfolio too large to share by link","var(--accent-red)");return;}
+  function done(){if(typeof toastMsg==="function")toastMsg("\u2713 Read-only snapshot link copied","var(--accent-green)");}
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,function(){prompt("Copy this read-only snapshot link:",url);});}else{prompt("Copy this read-only snapshot link:",url);}}
+  catch(e){prompt("Copy this read-only snapshot link:",url);}
 }
 function sparkSvg(arr,pos){
   if(!arr||arr.length<2)return "";
@@ -1505,6 +1538,7 @@ function riskMetrics(){
 }
 function renderPortfolio(){
   var body=id("tab-body");
+  if(document.body&&document.body.classList)document.body.classList.toggle("ro-mode",RO);
   if(!S.paper.length){
     body.innerHTML='<div class="empty"><div>&#128188;</div>'+
       '<p>No paper trades yet.</p>'+
@@ -1561,10 +1595,15 @@ function renderPortfolio(){
     '<div class="pf-stat"><div class="v">'+wins+'/'+S.paper.length+'</div><div class="l">Winners</div></div>'+
     benchStat+
   '</div>';
-  body.innerHTML='<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>'+
+  var roBanner=RO?('<div class="ro-banner"><span class="ro-ic">\uD83D\uDCF8</span><div class="ro-tx"><b>'+esc(_snapMeta.title)+'</b> &mdash; shared read-only snapshot'+(_snapMeta.asOf?' &bull; as of '+esc(_snapMeta.asOf):'')+'. Prices are live from your device; nothing is saved here.</div><button class="close-btn" id="ro-exit" style="border-color:var(--accent-blue);color:var(--accent-blue)">Open my own TradeScale &rarr;</button></div>'):'';
+  var intro=RO?'':'<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>';
+  var footer='<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button>'+(RO?'':'<button class="close-btn" id="share-snap" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#128279; Share Snapshot</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button>')+'</div>';
+  body.innerHTML=roBanner+intro+
     summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+cards+
-    '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button></div>';
+    footer;
   var grp=id("gen-report");if(grp)grp.addEventListener("click",generateReport);
+  var ssnap=id("share-snap");if(ssnap)ssnap.addEventListener("click",sharePortfolio);
+  var rox=id("ro-exit");if(rox)rox.addEventListener("click",function(){try{location.hash="";}catch(e){}location.reload();});
   var exp=id("export-csv");
   if(exp)exp.addEventListener("click",exportCsv);
   var impb=id("import-btn");if(impb)impb.addEventListener("click",openImport);
@@ -1993,7 +2032,7 @@ function refreshStockQuotes(){
 
 // ---- BOOT ----
 initDisc();
-readHash();
+if(!loadSnapshot())readHash();
 render();
 loadLiveData();
 setTimeout(refreshCryptoQuotes,1500);
@@ -2302,6 +2341,7 @@ function buildCmds(){
   out.push({ico:"&#8646;",lbl:"Toggle density",hint:"view",run:function(){S.density=S.density==="compact"?"comfortable":"compact";_sDirty=true;render();}});
   out.push({ico:"&#128190;",lbl:"Export trades to CSV",hint:"action",run:function(){S.tab="portfolio";render();setTimeout(exportCsv,50);}});
   out.push({ico:"&#128203;",lbl:"Generate portfolio report (PDF)",hint:"action",run:function(){closeCmdk();generateReport();}});
+  out.push({ico:"&#128279;",lbl:"Share read-only portfolio snapshot",hint:"action",run:function(){closeCmdk();sharePortfolio();}});
   out.push({ico:"&#128279;",lbl:"Share current view",hint:"action",run:function(){if(typeof shareView==="function")shareView();}});
   out.push({ico:"&#128269;",lbl:"Consensus scanner",hint:"scan",run:function(){closeCmdk();openScanner();}});
   out.push({ico:"&#8681;",lbl:"Import your positions",hint:"import",run:function(){closeCmdk();openImport();}});
