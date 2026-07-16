@@ -575,6 +575,8 @@ body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 .nm-scale{font-size:.82rem;color:var(--text-secondary);margin-bottom:12px}
 .nm-add{margin:0}
 .pos-delta{display:inline-block;margin-top:8px;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--bg-secondary);border:1px solid var(--border)}
+.pos-hold{display:inline-block;margin-top:8px;margin-left:6px;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)}
+.pos-hold .pnl-pos,.pos-hold .pnl-neg{font-weight:700}
 .pos-sortbar{display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:.78rem;color:var(--text-muted)}.pos-sortbar label{white-space:nowrap}
 .pos-group{margin-bottom:14px}.pg-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 4px;margin-bottom:6px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}.pg-head:hover .pg-name{color:var(--accent-blue)}.pg-name{font-weight:700;font-size:.9rem;color:var(--text)}.pg-sub{font-size:.74rem;color:var(--text-muted);white-space:nowrap}
 .pos-note{display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding:9px 11px;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--accent-gold,#f5a623);border-radius:8px;font-size:.8rem;line-height:1.45}
@@ -1202,6 +1204,18 @@ function posPnl(pos){
   return{cur:cur,pnl:pnl,val:val,pct:pct,noQuote:curPrice(pos.ticker)===null};
 }
 
+function holdInfo(pos){
+  var t=Date.parse(pos.date);
+  if(isNaN(t))return null;
+  var days=Math.floor((Date.now()-t)/86400000);
+  if(days<0)return null;
+  var held;
+  if(days>=365){var y=Math.floor(days/365),d=days%365;held=y+"y"+(d>0?" "+d+"d":"");}
+  else held=days+"d";
+  var annPct=null;
+  if(days>=1){annPct=posPnl(pos).pct*365/days;}
+  return {days:days,annPct:annPct,held:held};
+}
 // ---- ANALYTICS ----
 function traderClass(tid){
   var tr=trader(tid)||{};
@@ -1927,6 +1941,7 @@ function renderPortfolio(){
         '<div><div class="pl">P&amp;L</div><div class="pv '+cls+'">'+sign+'$'+r.pnl.toFixed(2)+' ('+sign+r.pct.toFixed(1)+'%)</div></div>'+
       '</div>'+
       (function(){var _pd=posDelta(pos);return (_pd&&Math.abs(_pd.d)>=0.01)?'<div class="pos-delta '+(_pd.d>=0?"pnl-pos":"pnl-neg")+'" title="Change since '+esc(_pd.ts)+'">'+(_pd.d>=0?"\u25b2 +$":"\u25bc -$")+Math.abs(_pd.d).toFixed(2)+' today</div>':'';})()+
+      (function(){var _h=holdInfo(pos);if(!_h)return '';var ann=(_h.annPct!==null&&_h.days>=7&&isFinite(_h.annPct))?' <span class="'+(_h.annPct>=0?"pnl-pos":"pnl-neg")+'">(~'+(_h.annPct>=0?"+":"")+_h.annPct.toFixed(0)+'%/yr)</span>':'';return '<div class="pos-hold" title="Time held since the trade date">\u23F1 Held '+_h.held+ann+'</div>';})()+
       (r.noQuote?'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px">* no live quote &mdash; using entry price</div>':'')+
       (pos.note?'<div class="pos-note"><span class="pn-ic">&#128221;</span><span class="pn-tx">'+esc(pos.note)+'</span>'+(RO?'':'<button class="pn-edit" data-note="'+pos.pid+'" title="Edit note">&#9998;</button>')+'</div>':(RO?'':'<button class="pn-add" data-note="'+pos.pid+'">&#128221; Add thesis note</button>'))+
     '</div>';
