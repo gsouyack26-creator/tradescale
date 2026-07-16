@@ -509,6 +509,16 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .attr-bar i{display:block;height:100%;border-radius:4px}
 .attr-pnl{text-align:right;font-weight:700;white-space:nowrap}
 .attr-pnl em{display:block;font-style:normal;font-weight:500;font-size:.7rem;opacity:.8}
+.hc-wrap{background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:14px;margin:16px 0}
+.hc-hd{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:12px}
+.hc-hd b{font-size:.95rem;color:var(--text-primary);text-transform:none;letter-spacing:0}
+.hc-list{display:flex;flex-direction:column;gap:6px}
+.hc-row{display:flex;align-items:flex-start;gap:9px;font-size:.83rem;padding:7px 10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border)}
+.hc-ico{font-size:.95rem;flex-shrink:0;line-height:1.45;margin-top:1px}
+.hc-tx{line-height:1.45;color:var(--text-secondary)}
+.hc-good{border-color:rgba(46,189,133,.35)}
+.hc-warn{border-color:rgba(246,70,93,.35)}
+.hc-info{border-color:rgba(79,143,240,.25)}
 .report-open{overflow:hidden}
 #report-sheet{position:fixed;inset:0;z-index:11000;background:rgba(6,10,18,.72);backdrop-filter:blur(3px);overflow:auto;padding:24px 16px}
 .rp-inner{max-width:840px;margin:0 auto;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:26px 30px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
@@ -1760,6 +1770,43 @@ function attributionCard(){
     '<div class="bench-row">'+betaBlk+'</div>'+
     '<div class="attr-list">'+rows+'</div></div>';
 }
+function pfInsights(){
+  if(!S.paper||S.paper.length<2)return [];
+  var pnlData=S.paper.map(function(pos){var r=posPnl(pos);return{pos:pos,pnl:r.pnl,val:r.val,pct:r.pct};});
+  var totalVal=pnlData.reduce(function(a,b){return a+b.val;},0);
+  if(totalVal<=0)return [];
+  var insights=[];
+  var tickers={};
+  pnlData.forEach(function(d){var tk=d.pos.ticker;tickers[tk]=(tickers[tk]||0)+d.val;});
+  var tkKeys=Object.keys(tickers).sort(function(a,b){return tickers[b]-tickers[a];});
+  var topTk=tkKeys[0];
+  var concPct=tickers[topTk]/totalVal*100;
+  if(concPct>=35){
+    insights.push({level:"warn",ico:"\u26A0\uFE0F",text:topTk+" represents "+concPct.toFixed(0)+"% of total portfolio value."});
+  }else{
+    insights.push({level:"good",ico:"\u2705",text:"Largest position ("+topTk+") is "+concPct.toFixed(0)+"% of total value \u2014 within a balanced range."});
+  }
+  var uniq=tkKeys.length;
+  insights.push({level:"info",ico:"\uD83D\uDCCA",text:"Portfolio spans "+uniq+" distinct ticker"+(uniq===1?"":"s")+"."});
+  var sorted=pnlData.slice().sort(function(a,b){return b.pct-a.pct;});
+  var best=sorted[0],worst=sorted[sorted.length-1];
+  insights.push({level:"info",ico:"\uD83D\uDCC8",text:"Best performer: "+best.pos.ticker+" ("+(best.pct>=0?"+":"")+best.pct.toFixed(1)+"%)."});
+  insights.push({level:"info",ico:"\uD83D\uDCC9",text:"Worst performer: "+worst.pos.ticker+" ("+(worst.pct>=0?"+":"")+worst.pct.toFixed(1)+"%)."});
+  var wins=pnlData.filter(function(d){return d.pnl>=0;}).length;
+  var winPct=wins/pnlData.length*100;
+  insights.push({level:winPct>=50?"good":"warn",ico:winPct>=50?"\uD83C\uDFC6":"\u26A0\uFE0F",text:wins+" of "+pnlData.length+" positions are profitable ("+winPct.toFixed(0)+"% win rate)."});
+  return insights;
+}
+function pfInsightsHtml(){
+  if(!S.paper||S.paper.length<2)return "";
+  var rows=pfInsights();
+  if(!rows.length)return "";
+  var items=rows.map(function(ins){
+    return '<div class="hc-row hc-'+esc(ins.level)+'"><span class="hc-ico">'+ins.ico+'</span><span class="hc-tx">'+esc(ins.text)+'</span></div>';
+  }).join("");
+  return '<div class="hc-wrap"><div class="hc-hd"><b>Portfolio Health Check</b></div>'+
+    '<div class="hc-list">'+items+'</div></div>';
+}
 function allocDonut(){
   var segs=S.paper.map(function(pos){var r=posPnl(pos);return {tk:pos.ticker,val:r.val};}).filter(function(x){return x.val>0;});
   var tot=segs.reduce(function(a,b){return a+b.val;},0);
@@ -1903,7 +1950,7 @@ function renderPortfolio(){
   var intro=RO?'':'<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>';
   var footer='<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button>'+(RO?'':'<button class="close-btn" id="share-snap" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#128279; Share Snapshot</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button>')+'</div>';
   body.innerHTML=pfBarHtml()+roBanner+nextMoveHtml()+intro+
-    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+(S.paper.length>1?'<div class="pos-sortbar"><label for="pos-sort">Sort positions</label><select id="pos-sort" class="filter-select" aria-label="Sort positions">'+'<option value="none"'+(!S.psort||S.psort==="none"?" selected":"")+'>Added order</option>'+'<option value="pnl"'+(S.psort==="pnl"?" selected":"")+'>P&amp;L (high&rarr;low)</option>'+'<option value="pct"'+(S.psort==="pct"?" selected":"")+'>Return % (high&rarr;low)</option>'+'<option value="val"'+(S.psort==="val"?" selected":"")+'>Value (high&rarr;low)</option>'+'<option value="ticker"'+(S.psort==="ticker"?" selected":"")+'>Ticker (A&rarr;Z)</option>'+'</select>'+'<label for="pos-group" style="margin-left:8px">Group</label>'+'<select id="pos-group" class="filter-select" aria-label="Group positions">'+'<option value="flat"'+(!S.pgroup||S.pgroup==="flat"?" selected":"")+'>None</option>'+'<option value="src"'+(S.pgroup==="src"?" selected":"")+'>By whale/fund</option>'+'</select></div>':'')+cards+
+    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard()+pfInsightsHtml():'')+(S.paper.length>1?'<div class="pos-sortbar"><label for="pos-sort">Sort positions</label><select id="pos-sort" class="filter-select" aria-label="Sort positions">'+'<option value="none"'+(!S.psort||S.psort==="none"?" selected":"")+'>Added order</option>'+'<option value="pnl"'+(S.psort==="pnl"?" selected":"")+'>P&amp;L (high&rarr;low)</option>'+'<option value="pct"'+(S.psort==="pct"?" selected":"")+'>Return % (high&rarr;low)</option>'+'<option value="val"'+(S.psort==="val"?" selected":"")+'>Value (high&rarr;low)</option>'+'<option value="ticker"'+(S.psort==="ticker"?" selected":"")+'>Ticker (A&rarr;Z)</option>'+'</select>'+'<label for="pos-group" style="margin-left:8px">Group</label>'+'<select id="pos-group" class="filter-select" aria-label="Group positions">'+'<option value="flat"'+(!S.pgroup||S.pgroup==="flat"?" selected":"")+'>None</option>'+'<option value="src"'+(S.pgroup==="src"?" selected":"")+'>By whale/fund</option>'+'</select></div>':'')+cards+
     footer;
   bindPfBar();
   bindNextMove();
