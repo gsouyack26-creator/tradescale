@@ -409,6 +409,9 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .help-box h3{margin:0 0 14px}
 .help-grid{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:.85rem;margin-bottom:16px}
 .help-grid .hk{white-space:nowrap}
+.help-cat{grid-column:1/-1;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-blue);margin-top:12px;font-weight:700}
+.help-cat:first-child{margin-top:0}
+.help-box{max-height:80vh;overflow-y:auto}
 .drawer-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9990}
 .drawer-scrim[hidden]{display:none}
 .drawer{position:fixed;top:0;right:0;height:100vh;width:min(420px,94vw);background:var(--bg-card);border-left:1px solid var(--border);box-shadow:-12px 0 40px rgba(0,0,0,.5);z-index:9991;overflow-y:auto;transform:translateX(0);transition:transform .22s ease}
@@ -2996,12 +2999,19 @@ function closeHelp(){id("help-modal").hidden=true;}
   <div class="cmdk-box help-box">
     <h3>&#9000; Keyboard Shortcuts</h3>
     <div class="help-grid">
-      <span class="hk"><kbd>Ctrl</kbd>/<kbd>&#8984;</kbd>+<kbd>K</kbd></span><span>Open command palette</span>
+      <b class="help-cat">Navigation</b>
+      <span class="hk"><kbd>1</kbd></span><span>Live Trades</span>
+      <span class="hk"><kbd>2</kbd></span><span>Strategies</span>
+      <span class="hk"><kbd>3</kbd></span><span>My Portfolio</span>
+      <span class="hk"><kbd>4</kbd></span><span>Watchlist</span>
+      <span class="hk"><kbd>5</kbd></span><span>Sources</span>
       <span class="hk"><kbd>/</kbd></span><span>Focus trade search</span>
-      <span class="hk"><kbd>1</kbd>&hellip;<kbd>5</kbd></span><span>Switch tabs</span>
+      <b class="help-cat">Actions</b>
+      <span class="hk"><kbd>Ctrl</kbd>/<kbd>&#8984;</kbd>+<kbd>K</kbd></span><span>Command palette</span>
       <span class="hk"><kbd>t</kbd></span><span>Cycle theme</span>
       <span class="hk"><kbd>d</kbd></span><span>Toggle density</span>
-      <span class="hk"><kbd>?</kbd></span><span>This help</span>
+      <b class="help-cat">General</b>
+      <span class="hk"><kbd>?</kbd></span><span>Show this help</span>
       <span class="hk"><kbd>esc</kbd></span><span>Close overlays</span>
     </div>
     <button id="help-close" class="close-btn">Close</button>
