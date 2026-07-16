@@ -566,6 +566,7 @@ body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 .nm-add{margin:0}
 .pos-delta{display:inline-block;margin-top:8px;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--bg-secondary);border:1px solid var(--border)}
 .pos-sortbar{display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:.78rem;color:var(--text-muted)}.pos-sortbar label{white-space:nowrap}
+.pos-group{margin-bottom:14px}.pg-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 4px;margin-bottom:6px;border-bottom:1px solid var(--border)}.pg-name{font-weight:700;font-size:.9rem;color:var(--text)}.pg-sub{font-size:.74rem;color:var(--text-muted);white-space:nowrap}
 .pos-note{display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding:9px 11px;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--accent-gold,#f5a623);border-radius:8px;font-size:.8rem;line-height:1.45}
 .pn-ic{flex:none;opacity:.8}
 .pn-tx{flex:1;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word}
@@ -844,9 +845,9 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     var r={budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",pgroup:s.pgroup||"flat",density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
     _migratePf(s,r);return r;
-  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
+  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",pgroup:"flat",density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
 }
 function _migratePf(s,r){
   var pf=s&&s.portfolios;
@@ -1820,6 +1821,11 @@ function sortedPositions(){
   });
   return arr;
 }
+function groupedPositions(){
+  var arr=sortedPositions(),m={},order=[];
+  arr.forEach(function(p){var k=(p.fund||p.who||"Other");if(!m[k]){m[k]=[];order.push(k);}m[k].push(p);});
+  return order.map(function(k){return {label:k,items:m[k]};});
+}
 function renderPortfolio(){
   var body=id("tab-body");
   if(document.body&&document.body.classList)document.body.classList.toggle("ro-mode",RO);
@@ -1832,10 +1838,9 @@ function renderPortfolio(){
     return;
   }
   var totalCost=0,totalVal=0,totalPnl=0,wins=0;
-  var cards=sortedPositions().map(function(pos){
+  S.paper.forEach(function(pos){var _r=posPnl(pos);totalCost+=pos.cost;totalVal+=_r.val;totalPnl+=_r.pnl;if(_r.pnl>=0)wins++;});
+  function posCard(pos){
     var r=posPnl(pos);
-    totalCost+=pos.cost;totalVal+=r.val;totalPnl+=r.pnl;
-    if(r.pnl>=0)wins++;
     var cls=r.pnl>=0?"pnl-pos":"pnl-neg";
     var sign=r.pnl>=0?"+":"";
     var dirCls=pos.dir==="LONG"?"dir-long":"dir-short";
@@ -1860,7 +1865,16 @@ function renderPortfolio(){
       (r.noQuote?'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:6px">* no live quote &mdash; using entry price</div>':'')+
       (pos.note?'<div class="pos-note"><span class="pn-ic">&#128221;</span><span class="pn-tx">'+esc(pos.note)+'</span>'+(RO?'':'<button class="pn-edit" data-note="'+pos.pid+'" title="Edit note">&#9998;</button>')+'</div>':(RO?'':'<button class="pn-add" data-note="'+pos.pid+'">&#128221; Add thesis note</button>'))+
     '</div>';
-  }).join("");
+  }
+  var cards=(S.pgroup==="src")
+    ? groupedPositions().map(function(g){
+        var gc=0,gv=0,gp=0;g.items.forEach(function(p){var rr=posPnl(p);gc+=p.cost;gv+=rr.val;gp+=rr.pnl;});
+        var gcls=gp>=0?"pnl-pos":"pnl-neg",gs=gp>=0?"+":"";
+        return '<div class="pos-group"><div class="pg-head"><span class="pg-name">'+esc(g.label)+'</span>'+
+          '<span class="pg-sub">'+g.items.length+' pos &bull; $'+gv.toFixed(0)+' &bull; <span class="'+gcls+'">'+gs+'$'+gp.toFixed(0)+'</span></span></div>'+
+          g.items.map(posCard).join("")+'</div>';
+      }).join("")
+    : sortedPositions().map(posCard).join("");
   var totPct=totalCost>0?(totalPnl/totalCost)*100:0;
   var tcls=totalPnl>=0?"pnl-pos":"pnl-neg";
   var tsign=totalPnl>=0?"+":"";
@@ -1887,11 +1901,12 @@ function renderPortfolio(){
   var intro=RO?'':'<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>';
   var footer='<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button>'+(RO?'':'<button class="close-btn" id="share-snap" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#128279; Share Snapshot</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button>')+'</div>';
   body.innerHTML=pfBarHtml()+roBanner+nextMoveHtml()+intro+
-    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+(S.paper.length>1?'<div class="pos-sortbar"><label for="pos-sort">Sort positions</label><select id="pos-sort" class="filter-select" aria-label="Sort positions">'+'<option value="none"'+(!S.psort||S.psort==="none"?" selected":"")+'>Added order</option>'+'<option value="pnl"'+(S.psort==="pnl"?" selected":"")+'>P&amp;L (high&rarr;low)</option>'+'<option value="pct"'+(S.psort==="pct"?" selected":"")+'>Return % (high&rarr;low)</option>'+'<option value="val"'+(S.psort==="val"?" selected":"")+'>Value (high&rarr;low)</option>'+'<option value="ticker"'+(S.psort==="ticker"?" selected":"")+'>Ticker (A&rarr;Z)</option>'+'</select></div>':'')+cards+
+    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+(S.paper.length>1?'<div class="pos-sortbar"><label for="pos-sort">Sort positions</label><select id="pos-sort" class="filter-select" aria-label="Sort positions">'+'<option value="none"'+(!S.psort||S.psort==="none"?" selected":"")+'>Added order</option>'+'<option value="pnl"'+(S.psort==="pnl"?" selected":"")+'>P&amp;L (high&rarr;low)</option>'+'<option value="pct"'+(S.psort==="pct"?" selected":"")+'>Return % (high&rarr;low)</option>'+'<option value="val"'+(S.psort==="val"?" selected":"")+'>Value (high&rarr;low)</option>'+'<option value="ticker"'+(S.psort==="ticker"?" selected":"")+'>Ticker (A&rarr;Z)</option>'+'</select>'+'<label for="pos-group" style="margin-left:8px">Group</label>'+'<select id="pos-group" class="filter-select" aria-label="Group positions">'+'<option value="flat"'+(!S.pgroup||S.pgroup==="flat"?" selected":"")+'>None</option>'+'<option value="src"'+(S.pgroup==="src"?" selected":"")+'>By whale/fund</option>'+'</select></div>':'')+cards+
     footer;
   bindPfBar();
   bindNextMove();
   var psel=id("pos-sort");if(psel)psel.addEventListener("change",function(e){S.psort=e.target.value;save();render();});
+  var gsel=id("pos-group");if(gsel)gsel.addEventListener("change",function(e){S.pgroup=e.target.value;save();render();});
   var grp=id("gen-report");if(grp)grp.addEventListener("click",generateReport);
   var ssnap=id("share-snap");if(ssnap)ssnap.addEventListener("click",sharePortfolio);
   var rox=id("ro-exit");if(rox)rox.addEventListener("click",function(){try{location.hash="";}catch(e){}location.reload();});
