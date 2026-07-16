@@ -475,6 +475,12 @@ kbd{background:var(--bg-secondary);border:1px solid var(--border);border-bottom-
 .ctx-menu .cx-ico{width:18px;text-align:center;opacity:.85}
 .lb-bt{background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:5px;padding:0 5px;margin-left:6px;cursor:pointer;font-size:.72rem;line-height:1.5}
 .lb-bt:hover{border-color:var(--accent-blue,#4f8ff0);color:var(--text-primary)}
+.follow-star{background:transparent;border:none;cursor:pointer;font-size:.88rem;padding:0 3px;margin-left:4px;line-height:1.6;color:var(--text-muted);vertical-align:middle;}
+.follow-star.on{color:var(--accent-gold);}
+.follow-star:hover{color:var(--accent-gold);}
+.card-followed{border-left:3px solid var(--accent-gold)!important;padding-left:17px;}
+.fw{background:rgba(227,179,65,0.15);color:var(--accent-gold);border-color:var(--accent-gold);}
+.lb-follow-count{font-weight:400;font-size:.72rem;color:var(--accent-gold);margin-left:8px;background:rgba(227,179,65,.15);border-radius:10px;padding:1px 7px;}
 .bt-box{width:min(560px,94vw);max-height:90vh;overflow:auto}
 .bt-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border)}
 .bt-title{font-size:1.15rem;font-weight:800}
@@ -882,9 +888,9 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     var r={budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",pgroup:s.pgroup||"flat",pgcollapse:(s.pgcollapse&&typeof s.pgcollapse==="object"&&!Array.isArray(s.pgcollapse)?s.pgcollapse:{}),density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper),tourDone:!!s.tourDone,filterPresets:(Array.isArray(s.filterPresets)?s.filterPresets.filter(function(p){return p&&typeof p==="object"&&typeof p.name==="string"&&p.name.length>0;}):[])};
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",pgroup:s.pgroup||"flat",pgcollapse:(s.pgcollapse&&typeof s.pgcollapse==="object"&&!Array.isArray(s.pgcollapse)?s.pgcollapse:{}),density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper),tourDone:!!s.tourDone,followed:(Array.isArray(s.followed)?s.followed:[]),followOnly:!!s.followOnly,filterPresets:(Array.isArray(s.filterPresets)?s.filterPresets.filter(function(p){return p&&typeof p==="object"&&typeof p.name==="string"&&p.name.length>0;}):[])};
     _migratePf(s,r);return r;
-  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",pgroup:"flat",pgcollapse:{},density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[],tourDone:false,filterPresets:[]};_migratePf({},r);return r;}
+  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",pgroup:"flat",pgcollapse:{},density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[],tourDone:false,followed:[],followOnly:false,filterPresets:[]};_migratePf({},r);return r;}
 }
 function _migratePf(s,r){
   var pf=s&&s.portfolios;
@@ -1521,6 +1527,15 @@ function deletePreset(i){
 }
 function applyView(f){if(!f)return;["q","trader","action","asset","ttype","sort"].forEach(function(k){if(f[k]!=null)S[k]=f[k];});S.tab="trades";_sDirty=true;render();}
 function saveCurrentView(name){name=(name||"").trim();if(!name)return false;var v=loadViews().filter(function(x){return x.name!==name;});v.push({name:name,f:currentFilters()});if(v.length>20)v=v.slice(v.length-20);saveViews(v);return true;}
+/* ==== Follow Whales ==== */
+function toggleFollow(name){
+  if(RO)return;
+  var idx=S.followed.indexOf(name);
+  if(idx>-1){S.followed=S.followed.filter(function(n){return n!==name;});}
+  else{S.followed=S.followed.concat([name]);}
+  _sDirty=true;save(true);render();
+}
+/* ==== Follow Whales end ==== */
 /* ==== Wave 11 end ==== */
 function exportCsv(){
   var rows=[["Ticker","Company","Direction","Shares","Entry","Current","Cost","Value","PnL","PnL%","CopiedFrom","Date"]];
@@ -1543,6 +1558,7 @@ function filtered(){
   else if(S.asset==="stock")list=list.filter(function(t){return t.asset!=="crypto";});
   if(S.ttype!=="all")list=list.filter(function(t){return traderClass(t.tid)===S.ttype;});
   if(S.trader!=="all"){list=list.filter(function(t){return (trader(t.tid)||{}).name===S.trader;});}
+  if(S.followOnly){list=list.filter(function(t){var tn=(trader(t.tid)||{}).name||"";return S.followed.indexOf(tn)>-1;});}
   list.sort(function(a,b){
     if(S.sort==="date")return b.date.localeCompare(a.date);
     if(S.sort==="vd")return b.value-a.value;
@@ -1592,16 +1608,16 @@ function tradeCard(t){
   var tr=trader(t.tid)||{};
   var sc=scale(t,S.budget);
   var tips=getTips(t,S.budget);
-  var open=!!S.open[t.id];
+  var open=!!S.open[t.id];var isFollowed=S.followed.indexOf(tr.name||"Unknown")>-1;
   var cc=sc.conv==="BIG"?"g":sc.conv==="MEDIUM"?"gold":"";
   var tipHtml="";
   if(open){tipHtml='<div style="margin-top:8px">'+tips.map(function(s){
     return'<div class="strat-item"><div class="strat-row"><strong style="font-size:.85rem">'+esc(s.type)+'</strong>'+
       '<span class="rb risk-'+s.risk+'">'+s.risk+'</span></div><p>'+esc(s.desc)+'</p></div>';
   }).join("")+'</div>';}
-  return'<div class="card'+(open?' expanded':'')+'">'+
+  return'<div class="card'+(open?' expanded':'')+(isFollowed?' card-followed':'')+'">'+
     '<div class="card-header"><div>'+
-      '<div class="trader-name">'+esc(tr.name||"Unknown")+'</div>'+
+      '<div class="trader-name">'+esc(tr.name||"Unknown")+' <button class="follow-star'+(isFollowed?' on':'')+'" data-follow="'+esc(tr.name||"Unknown")+'" aria-pressed="'+(isFollowed?"true":"false")+'" title="'+(isFollowed?"Unfollow":"Follow")+' '+esc(tr.name||"Unknown")+'">\u2605</button></div>'+
       '<div class="trader-meta">'+esc(tr.fund||"")+'&bull;'+esc(tr.style||"")+'&bull;'+esc(t.date)+'</div>'+
     '</div><span class="ta '+t.action.toLowerCase()+'">'+t.action+'</span></div>'+
     '<div style="font-size:1.2rem;font-weight:700;margin-bottom:4px"><span class="ticker-sym" data-drawer="'+esc(t.ticker)+'" role="button" tabindex="0" title="View ticker detail">'+esc(t.ticker)+'</span>'+
@@ -1723,7 +1739,7 @@ function renderTrades(){
     '<button class="filter-tag'+(S.ttype==="fund"?' fb':'')+'" aria-pressed="'+(S.ttype==="fund"?"true":"false")+'" data-ttype="fund">Funds</button>'+
     '<button class="filter-tag'+(S.ttype==="congress"?' fg':'')+'" aria-pressed="'+(S.ttype==="congress"?"true":"false")+'" data-ttype="congress">Congress</button>'+
     '<button class="filter-tag'+(S.ttype==="crypto"?' fc':'')+'" aria-pressed="'+(S.ttype==="crypto"?"true":"false")+'" data-ttype="crypto">Crypto Whales</button>'+
-    '<button class="filter-tag" id="share-view" title="Copy a link to this exact filtered view" style="margin-left:auto">&#128279; Share view</button>'+
+    '<span style="width:1px;height:22px;background:var(--border);margin:0 4px"></span>'+'<button class="filter-tag'+(S.followOnly?' fw':'')+'" id="follow-only-btn" aria-pressed="'+(S.followOnly?"true":"false")+'" title="Show only followed traders">\u2605 Followed'+(S.followed.length?' ('+S.followed.length+')':'')+'</button>'+'<button class="filter-tag" id="share-view" title="Copy a link to this exact filtered view" style="margin-left:auto">&#128279; Share view</button>'+
   filterPresetsHtml()+
   '</div>';
   var list=filtered();
@@ -1760,9 +1776,9 @@ function renderTrades(){
     var lbRows=lb.slice(0,10).map(function(e,i){
       var ac=e.avg>=0?"pnl-pos":"pnl-neg",as=e.avg>=0?"+":"";
       var ci=e.cls==="congress"?"\uD83C\uDFDB\uFE0F":e.cls==="crypto"?"\uD83D\uDC0B":"\uD83D\uDCC8";
-      return '<tr><td class="l">'+(i+1)+'</td><td class="l"><button class="ins-tk" data-trader="'+esc(e.name)+'">'+ci+' '+esc(e.name)+'</button><button class="lb-bt" data-bt="'+esc(e.name)+'" title="Backtest copying this trader">&#129514;</button></td><td class="'+ac+'">'+as+e.avg.toFixed(1)+'%</td><td>'+e.win.toFixed(0)+'%</td><td>'+e.n+'</td></tr>';
+      return '<tr><td class="l">'+(i+1)+'</td><td class="l"><button class="ins-tk" data-trader="'+esc(e.name)+'">'+ci+' '+esc(e.name)+'</button><button class="lb-bt" data-bt="'+esc(e.name)+'" title="Backtest copying this trader">&#129514;</button><button class="follow-star'+(S.followed.indexOf(e.name)>-1?' on':'')+'" data-follow="'+esc(e.name)+'" aria-pressed="'+(S.followed.indexOf(e.name)>-1?"true":"false")+'" title="'+(S.followed.indexOf(e.name)>-1?"Unfollow":"Follow")+' '+esc(e.name)+'">\u2605</button></td><td class="'+ac+'">'+as+e.avg.toFixed(1)+'%</td><td>'+e.win.toFixed(0)+'%</td><td>'+e.n+'</td></tr>';
     }).join("");
-    lbHtml='<details class="card lb-card"'+((S.open&&S.open.__lb)?' open':'')+'><summary class="lb-sum">\uD83C\uDFC6 Smart-Money Leaderboard <span class="lb-hint">est. return on disclosed trades vs current price</span></summary><div style="overflow-x:auto"><table class="wl-table lb-table"><thead><tr><th class="l">#</th><th class="l">Trader</th><th>Avg Return</th><th>Win %</th><th>Trades</th></tr></thead><tbody>'+lbRows+'</tbody></table></div></details>';
+    lbHtml='<details class="card lb-card"'+((S.open&&S.open.__lb)?' open':'')+'><summary class="lb-sum">\uD83C\uDFC6 Smart-Money Leaderboard <span class="lb-hint">est. return on disclosed trades vs current price</span>'+(S.followed.length?' <span class="lb-follow-count">\u2605 '+S.followed.length+' followed</span>':'')+'</summary><div style="overflow-x:auto"><table class="wl-table lb-table"><thead><tr><th class="l">#</th><th class="l">Trader</th><th>Avg Return</th><th>Win %</th><th>Trades</th></tr></thead><tbody>'+lbRows+'</tbody></table></div></details>';
   }
   var cg=congressSummary(),cgHtml="";
   if(cg){
@@ -2257,6 +2273,8 @@ function bindBody(){
   var _lbc=document.querySelector(".lb-card");
   if(_lbc)_lbc.addEventListener("toggle",function(){S.open=S.open||{};S.open.__lb=_lbc.open;_sDirty=true;save();});
   var sv=id("share-view");if(sv)sv.addEventListener("click",shareView);
+  var _fob=id("follow-only-btn");if(_fob)_fob.addEventListener("click",function(){if(RO)return;S.followOnly=!S.followOnly;_sDirty=true;renderTrades();save();});
+  document.querySelectorAll("[data-follow]").forEach(function(b){b.addEventListener("click",function(e){e.stopPropagation();toggleFollow(e.currentTarget.getAttribute("data-follow"));});});
   var fpSave=id("fp-save-btn");
   if(fpSave)fpSave.addEventListener("click",saveFilterPreset);
   document.querySelectorAll(".fp-chip").forEach(function(btn){
