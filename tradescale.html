@@ -565,6 +565,7 @@ body.ro-mode [data-close],body.ro-mode .paper-btn{display:none!important}
 .nm-scale{font-size:.82rem;color:var(--text-secondary);margin-bottom:12px}
 .nm-add{margin:0}
 .pos-delta{display:inline-block;margin-top:8px;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--bg-secondary);border:1px solid var(--border)}
+.pos-sortbar{display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:.78rem;color:var(--text-muted)}.pos-sortbar label{white-space:nowrap}
 .pos-note{display:flex;align-items:flex-start;gap:8px;margin-top:10px;padding:9px 11px;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--accent-gold,#f5a623);border-radius:8px;font-size:.8rem;line-height:1.45}
 .pn-ic{flex:none;opacity:.8}
 .pn-tx{flex:1;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word}
@@ -843,9 +844,9 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     var r={budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
     _migratePf(s,r);return r;
-  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
+  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
 }
 function _migratePf(s,r){
   var pf=s&&s.portfolios;
@@ -1806,6 +1807,19 @@ function riskMetrics(){
       return ddCell+shCell;})()+
   '</div>';
 }
+function sortedPositions(){
+  var arr=S.paper.slice(),k=S.psort;
+  if(!k||k==="none")return arr;
+  arr.sort(function(a,b){
+    if(k==="ticker")return a.ticker.localeCompare(b.ticker);
+    var pa=posPnl(a),pb=posPnl(b);
+    if(k==="pnl")return pb.pnl-pa.pnl;
+    if(k==="pct")return pb.pct-pa.pct;
+    if(k==="val")return pb.val-pa.val;
+    return 0;
+  });
+  return arr;
+}
 function renderPortfolio(){
   var body=id("tab-body");
   if(document.body&&document.body.classList)document.body.classList.toggle("ro-mode",RO);
@@ -1818,7 +1832,7 @@ function renderPortfolio(){
     return;
   }
   var totalCost=0,totalVal=0,totalPnl=0,wins=0;
-  var cards=S.paper.map(function(pos){
+  var cards=sortedPositions().map(function(pos){
     var r=posPnl(pos);
     totalCost+=pos.cost;totalVal+=r.val;totalPnl+=r.pnl;
     if(r.pnl>=0)wins++;
@@ -1873,10 +1887,11 @@ function renderPortfolio(){
   var intro=RO?'':'<p class="intro">Your paper portfolio &mdash; hypothetical positions copied from whale trades at your $'+S.budget+' budget. Prices update daily with the live feed. <strong>No real money involved.</strong></p>';
   var footer='<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="close-btn" id="gen-report" style="border-color:var(--accent-green);color:var(--accent-green)">&#128203; Generate Report</button><button class="close-btn" id="export-csv" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#8681; Export CSV</button>'+(RO?'':'<button class="close-btn" id="share-snap" style="border-color:var(--accent-blue);color:var(--accent-blue)">&#128279; Share Snapshot</button><button class="close-btn" id="import-btn" style="border-color:var(--accent-green);color:var(--accent-green)">&#8679; Import</button><button class="close-btn" id="clear-all" style="border-color:var(--text-muted);color:var(--text-muted)">Clear All Positions</button>')+'</div>';
   body.innerHTML=pfBarHtml()+roBanner+nextMoveHtml()+intro+
-    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+cards+
+    summary+(S.paper.length>1?'<div class="pf-analytics">'+allocDonut()+riskMetrics()+equityCurveSvg(pfHistory())+'</div>'+attributionCard():'')+(S.paper.length>1?'<div class="pos-sortbar"><label for="pos-sort">Sort positions</label><select id="pos-sort" class="filter-select" aria-label="Sort positions">'+'<option value="none"'+(!S.psort||S.psort==="none"?" selected":"")+'>Added order</option>'+'<option value="pnl"'+(S.psort==="pnl"?" selected":"")+'>P&amp;L (high&rarr;low)</option>'+'<option value="pct"'+(S.psort==="pct"?" selected":"")+'>Return % (high&rarr;low)</option>'+'<option value="val"'+(S.psort==="val"?" selected":"")+'>Value (high&rarr;low)</option>'+'<option value="ticker"'+(S.psort==="ticker"?" selected":"")+'>Ticker (A&rarr;Z)</option>'+'</select></div>':'')+cards+
     footer;
   bindPfBar();
   bindNextMove();
+  var psel=id("pos-sort");if(psel)psel.addEventListener("change",function(e){S.psort=e.target.value;save();render();});
   var grp=id("gen-report");if(grp)grp.addEventListener("click",generateReport);
   var ssnap=id("share-snap");if(ssnap)ssnap.addEventListener("click",sharePortfolio);
   var rox=id("ro-exit");if(rox)rox.addEventListener("click",function(){try{location.hash="";}catch(e){}location.reload();});
