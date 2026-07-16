@@ -742,6 +742,22 @@ button:active{transform:scale(.97)}
 .brief-ico{flex-shrink:0;font-size:1.05rem;width:22px;text-align:center}
 .brief-quiet{color:var(--text-muted);font-size:.88rem;font-style:italic}
 .brief-src{margin-top:13px;padding-top:9px;border-top:1px solid var(--border);font-size:.67rem;color:var(--text-muted);letter-spacing:.02em}
+/* ==== Guided Tour ==== */
+.ts-tour-overlay{position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:20px}
+.ts-tour-box{background:var(--bg-card);border:1px solid var(--accent-blue);border-radius:var(--radius);padding:28px 26px;max-width:430px;width:100%;box-shadow:0 18px 60px rgba(0,0,0,.65);animation:boxIn .25s cubic-bezier(.16,1,.3,1)}
+.ts-tour-meta{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:8px}
+.ts-tour-title{font-size:1.15rem;font-weight:800;color:var(--text-primary);margin-bottom:10px}
+.ts-tour-body{font-size:.88rem;color:var(--text-secondary);line-height:1.6;margin-bottom:20px}
+.ts-tour-dots{display:flex;gap:6px;margin-bottom:18px}
+.ts-tour-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex:none}
+.ts-tour-dot.on{background:var(--accent-blue)}
+.ts-tour-foot{display:flex;gap:10px;align-items:center}
+.ts-tour-skip{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8rem;margin-right:auto;padding:0}
+.ts-tour-skip:hover{color:var(--text-primary)}
+.ts-tour-back{background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;padding:9px 18px;cursor:pointer;font-size:.85rem;font-weight:600}
+.ts-tour-back:hover{border-color:var(--accent-blue);color:var(--text-primary)}
+.ts-tour-next{background:var(--accent-blue);color:#fff;border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:.85rem;font-weight:700}
+.ts-tour-next:hover{filter:brightness(1.12)}
 </style>
 </head>
 <body>
@@ -855,9 +871,9 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     var r={budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",pgroup:s.pgroup||"flat",pgcollapse:(s.pgcollapse&&typeof s.pgcollapse==="object"&&!Array.isArray(s.pgcollapse)?s.pgcollapse:{}),density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper)};
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",pgroup:s.pgroup||"flat",pgcollapse:(s.pgcollapse&&typeof s.pgcollapse==="object"&&!Array.isArray(s.pgcollapse)?s.pgcollapse:{}),density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper),tourDone:!!s.tourDone};
     _migratePf(s,r);return r;
-  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",pgroup:"flat",pgcollapse:{},density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[]};_migratePf({},r);return r;}
+  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",pgroup:"flat",pgcollapse:{},density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[],tourDone:false};_migratePf({},r);return r;}
 }
 function _migratePf(s,r){
   var pf=s&&s.portfolios;
@@ -1048,6 +1064,7 @@ function initDisc(){
 function showApp(){
   id("disclaimer-gate").style.display="none";
   id("main-app").style.display="block";
+  if(!S.tourDone&&!S.paper.length){setTimeout(startTour,500);}
 }
 
 // ---- HELPERS ----
@@ -2397,6 +2414,70 @@ function refreshStockQuotes(){
   });
 }
 
+/* ==== Guided Tour ==== */
+var TOUR=[
+  {title:"\uD83D\uDC4B Welcome to TradeScale",
+   body:"This quick tour covers the 5 things that matter most. Hit <strong>Next</strong> to go at your own pace, or <strong>Skip tour</strong> to dive straight in."},
+  {tab:"trades",title:"\uD83D\uDCC8 Live Trades",
+   body:"These are <strong>real, publicly disclosed trades</strong> from hedge funds, congressional members, and crypto whales. Use the filters to narrow by trader, direction, or ticker."},
+  {tab:"trades",title:"\uD83D\uDCB0 Your Budget",
+   body:"Type your paper-trading budget in the <strong>My Budget \u0024</strong> field at the top. TradeScale scales every whale trade proportionally \u2014 showing you the exact fractional share count at your budget."},
+  {tab:"trades",title:"\u2795 Paper Trade This",
+   body:"On any trade card, tap <strong>+ Paper Trade This</strong> to copy it into your portfolio. No real money \u2014 just hypothetical P\u0026L tracking against live prices."},
+  {tab:"portfolio",title:"\uD83D\uDCBC My Portfolio",
+   body:"All your paper positions live here. See total return vs the S\u0026P 500, per-position P\u0026L, and an equity curve that builds over time. Hit <strong>Generate Report</strong> for a printable PDF."}
+];
+var _tourIdx=0,_tourEl=null;
+function startTour(){
+  if(RO)return;
+  _tourIdx=0;
+  tourStep(0);
+}
+function tourStep(i){
+  if(RO)return;
+  endTour(false);
+  _tourIdx=i;
+  var step=TOUR[i];
+  if(step.tab){S.tab=step.tab;_sDirty=true;render();}
+  var dots=TOUR.map(function(_,di){return '<span class="ts-tour-dot'+(di===i?' on':'')+'">'+'</span>';}).join("");
+  var backHtml=(i>0)?'<button class="ts-tour-back" id="ts-tour-back">\u2190 Back</button>':'';
+  var nextLbl=(i===TOUR.length-1)?'Done \u2714':'Next \u2192';
+  var ov=document.createElement("div");
+  ov.id="ts-tour-ov";
+  ov.className="ts-tour-overlay";
+  ov.setAttribute("role","dialog");
+  ov.setAttribute("aria-modal","true");
+  ov.setAttribute("aria-label","Tour step "+(i+1)+" of "+TOUR.length);
+  ov.innerHTML=
+    '<div class="ts-tour-box">'+
+      '<div class="ts-tour-meta">Step '+(i+1)+' of '+TOUR.length+'</div>'+
+      '<div class="ts-tour-title">'+step.title+'</div>'+
+      '<div class="ts-tour-body">'+step.body+'</div>'+
+      '<div class="ts-tour-dots">'+dots+'</div>'+
+      '<div class="ts-tour-foot">'+
+        '<button class="ts-tour-skip" id="ts-tour-skip">Skip tour</button>'+
+        backHtml+
+        '<button class="ts-tour-next" id="ts-tour-next">'+nextLbl+'</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(ov);
+  _tourEl=ov;
+  var nb=document.getElementById("ts-tour-next");
+  var bb=document.getElementById("ts-tour-back");
+  var sb=document.getElementById("ts-tour-skip");
+  if(nb)nb.addEventListener("click",function(){
+    if(_tourIdx===TOUR.length-1){endTour(true);}else{tourStep(_tourIdx+1);}
+  });
+  if(bb)bb.addEventListener("click",function(){if(_tourIdx>0)tourStep(_tourIdx-1);});
+  if(sb)sb.addEventListener("click",function(){endTour(false);});
+  try{if(nb)nb.focus();}catch(e){}
+}
+function endTour(completed){
+  if(_tourEl&&_tourEl.parentNode){_tourEl.parentNode.removeChild(_tourEl);}
+  _tourEl=null;
+  if(!RO&&completed){S.tourDone=true;_sDirty=true;save(true);}
+}
+
 // ---- BOOT ----
 initDisc();
 if(!loadSnapshot())readHash();
@@ -2717,6 +2798,7 @@ function buildCmds(){
   loadViews().forEach(function(vw){out.push({ico:"&#128193;",lbl:"View: "+vw.name,hint:"view",run:function(){applyView(vw.f);}});});
   out.push({ico:"&#128276;",lbl:(S.notifyShifts?"Disable":"Enable")+" consensus-shift notifications",hint:"alerts",run:function(){closeCmdk();toggleShiftNotify();}});
   out.push({ico:"&#9000;",lbl:"Keyboard shortcuts",hint:"help",run:openHelp});
+  out.push({ico:"&#127919;",lbl:"Take a tour",hint:"help",run:function(){closeCmdk();startTour();}});
   var seenTk={};consensus().forEach(function(e){if(seenTk[e.ticker])return;seenTk[e.ticker]=1;out.push({ico:"&#128200;",lbl:e.ticker+" \u2014 "+(e.co||""),hint:"ticker",run:function(){closeCmdk();openDrawer(e.ticker);}});});
   var seenTr={};topTraders.forEach(function(t){if(seenTr[t.name])return;seenTr[t.name]=1;out.push({ico:"&#128100;",lbl:t.name,hint:"trader",run:function(){S.tab="trades";S.trader=t.name;_sDirty=true;render();}});out.push({ico:"&#129514;",lbl:"Backtest "+t.name,hint:"backtest",run:function(){closeCmdk();openBacktest(t.name);}});});
   return out;
