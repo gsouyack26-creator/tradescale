@@ -301,6 +301,9 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .wl-actions{white-space:nowrap;}
 .wl-bell{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:.9rem;padding:0 2px;min-width:34px;min-height:44px;opacity:.75;}
 .wl-bell:hover{opacity:1;}
+.wl-pt-btn{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:.82rem;padding:0 2px;min-width:30px;min-height:44px;opacity:.5;}
+.wl-pt-btn:hover{opacity:1;color:var(--accent-gold);}
+.wl-pt-ind{display:inline-block;color:var(--accent-gold);font-size:.55rem;vertical-align:middle;margin-right:3px;line-height:1;cursor:default;}
 .wl-scroll{overflow-x:auto;max-height:65vh;overflow-y:auto;}
 .wl-table thead th{position:sticky;top:0;background:var(--bg-secondary);z-index:5;box-shadow:0 1px 0 var(--border);}
 .wl-hdr{cursor:pointer;user-select:none;}
@@ -908,9 +911,9 @@ function loadState(){
   try{
     var s=JSON.parse(localStorage.getItem("ts_state")||"{}");
     var r={budget:Math.max(0,s.budget||500),tab:s.tab||"trades",action:s.action||"all",
-            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",pgroup:s.pgroup||"flat",pgcollapse:(s.pgcollapse&&typeof s.pgcollapse==="object"&&!Array.isArray(s.pgcollapse)?s.pgcollapse:{}),density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper),tourDone:!!s.tourDone,followed:(Array.isArray(s.followed)?s.followed:[]),followOnly:!!s.followOnly,filterPresets:(Array.isArray(s.filterPresets)?s.filterPresets.filter(function(p){return p&&typeof p==="object"&&typeof p.name==="string"&&p.name.length>0;}):[])};
+            sort:s.sort||"date",q:s.q||"",trader:s.trader||"all",asset:s.asset||"all",ttype:s.ttype||"all",watch:(Array.isArray(s.watch)?s.watch:null),wsort:s.wsort||"chg",wsortDir:s.wsortDir||"desc",psort:s.psort||"none",pgroup:s.pgroup||"flat",pgcollapse:(s.pgcollapse&&typeof s.pgcollapse==="object"&&!Array.isArray(s.pgcollapse)?s.pgcollapse:{}),density:s.density||"comfortable",theme:s.theme||"quant",notifyShifts:!!s.notifyShifts,wlCols:(s.wlCols&&typeof s.wlCols==="object"&&!Array.isArray(s.wlCols)?s.wlCols:{name:true,spark:true,type:true}),open:(s.open&&typeof s.open==="object"&&!Array.isArray(s.open)?s.open:{}),paper:_sanPaper(s.paper),tourDone:!!s.tourDone,followed:(Array.isArray(s.followed)?s.followed:[]),followOnly:!!s.followOnly,filterPresets:(Array.isArray(s.filterPresets)?s.filterPresets.filter(function(p){return p&&typeof p==="object"&&typeof p.name==="string"&&p.name.length>0;}):[]),priceTargets:_sanPriceTargets(s.priceTargets)};
     _migratePf(s,r);return r;
-  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",pgroup:"flat",pgcollapse:{},density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[],tourDone:false,followed:[],followOnly:false,filterPresets:[]};_migratePf({},r);return r;}
+  }catch(e){var r={budget:500,tab:"trades",action:"all",sort:"date",q:"",trader:"all",asset:"all",ttype:"all",watch:null,wsort:"chg",wsortDir:"desc",psort:"none",pgroup:"flat",pgcollapse:{},density:"comfortable",theme:"quant",notifyShifts:false,wlCols:{name:true,spark:true,type:true},open:{},paper:[],tourDone:false,followed:[],followOnly:false,filterPresets:[],priceTargets:{}};_migratePf({},r);return r;}
 }
 function _migratePf(s,r){
   var pf=s&&s.portfolios;
@@ -1069,6 +1072,19 @@ var _reportPrev=null,_cmpPrev=null;
 var _consMemo=null,_csMemo=null,_memoTrades=null,_sigMemo=null,_streakMemo=null,_lbMemo=null,_budgetT=null,_stockSeq=0;
 function _invalidateMemo(){_consMemo=null;_csMemo=null;_memoTrades=null;_sigMemo=null;_streakMemo=null;_lbMemo=null;}
 function _sanPaper(a){if(!Array.isArray(a))return [];var num=function(v){var x=Number(v);return isFinite(x)?x:0;};return a.filter(function(p){return p&&typeof p==="object";}).map(function(p){p.entry=num(p.entry);p.shares=num(p.shares);p.cost=num(p.cost);if(p.note!=null)p.note=String(p.note).slice(0,280);return p;}).filter(function(p){return p.shares>0&&p.cost>0;});}
+function _sanPriceTargets(v){
+  if(!v||typeof v!=="object"||Array.isArray(v))return {};
+  var out={};
+  Object.keys(v).forEach(function(tk){
+    var t=v[tk];
+    if(!t||typeof t!=="object")return;
+    var entry={};
+    var ab=Number(t.above);if(isFinite(ab)&&ab>0)entry.above=Math.round(ab*10000)/10000;
+    var bl=Number(t.below);if(isFinite(bl)&&bl>0)entry.below=Math.round(bl*10000)/10000;
+    if(entry.above!=null||entry.below!=null)out[String(tk)]=entry;
+  });
+  return out;
+}
 function save(force){if(RO)return;if(!force&&!_sDirty)return;_syncActive();try{localStorage.setItem("ts_state",JSON.stringify(S));_sDirty=false;}catch(e){}}
 
 // ---- DISCLAIMER ----
@@ -2359,6 +2375,7 @@ function renderWatchlist(){
     var prev=PREV_PX[tk];
     var dir=(prev!=null&&cur!=null)?(cur>prev?"up":cur<prev?"down":""):"";
     var chCls=chg==null?"":chg>=0?"pnl-pos":"pnl-neg";
+    var _ptEntry=(S.priceTargets&&typeof S.priceTargets==="object")?S.priceTargets[tk]:null;
     var chTxt=chg==null?"&mdash;":(chg>=0?"+":"")+chg.toFixed(2)+'% <span style="color:var(--text-muted);font-size:.6rem">'+chgLbl+'</span>';
     var last=cur!=null?"$"+cur.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"&mdash;";
     var badge=isCr?'<span class="wl-badge wl-cr">CRYPTO</span> <span class="wl-badge wl-live-b">LIVE</span>':
@@ -2370,7 +2387,10 @@ function renderWatchlist(){
       '<td class="'+chCls+'">'+chTxt+'</td>'+
       (C.spark?'<td class="wl-spark">'+(function(){if(isCr&&CRYPTO_LIVE[tk]&&CRYPTO_LIVE[tk].spark){var _sp=sparkSvg(CRYPTO_LIVE[tk].spark,CRYPTO_LIVE[tk].chg24>=0);return _sp||'<span class="wl-nospark">&mdash;</span>';}return '<span class="wl-nospark">&mdash;</span>';}())+'</td>':'')+
       (C.type?'<td>'+badge+'</td>':'')+
-      '<td class="wl-actions"><button class="wl-bell" data-bell="'+esc(tk)+'" title="Set price alert">\uD83D\uDD14</button><button class="wl-x" data-wlx="'+esc(tk)+'" title="Remove">&times;</button></td></tr>';
+      '<td class="wl-actions">'+(_ptEntry?'<span class="wl-pt-ind" title="Target: '+(_ptEntry.above!=null?'\u25B2$'+_ptEntry.above.toFixed(2):'')+(_ptEntry.above!=null&&_ptEntry.below!=null?' ':'')+(_ptEntry.below!=null?'\u25BC$'+_ptEntry.below.toFixed(2):'')+'">\u25CF</span>':'')+
+      '<button class="wl-pt-btn" data-pt-btn="'+esc(tk)+'" title="Set price target">\uD83C\uDFAF</button>'+
+      '<button class="wl-bell" data-bell="'+esc(tk)+'" title="Set price alert">\uD83D\uDD14</button>'+
+      '<button class="wl-x" data-wlx="'+esc(tk)+'" title="Remove">&times;</button></td></tr>';
   }).join("");
   body.innerHTML='<p class="intro">Your live ticker board &mdash; <strong>crypto updates in real time</strong> (CoinGecko, every 30s) with 24h change; <strong>stocks show the latest end-of-day close</strong> from the feed with change since the whale disclosed it. Add any symbol to track it.</p>'+
     '<div class="wl-toolbar">'+
@@ -2432,6 +2452,30 @@ function bindWatch(){
     function doSort(){var k=b.getAttribute("data-wsort");if(S.wsort===k)S.wsortDir=(S.wsortDir==="asc"?"desc":"asc");else{S.wsort=k;S.wsortDir="desc";}_sDirty=true;save();render();}
     b.addEventListener("click",doSort);
     b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();doSort();}});
+  document.querySelectorAll("[data-pt-btn]").forEach(function(b){
+    b.addEventListener("click",function(e){
+      if(RO)return;
+      var tk=e.currentTarget.getAttribute("data-pt-btn");
+      var cur=curPrice(tk);
+      var curLbl=cur!=null?" (now $"+cur.toFixed(2)+")":"";
+      var abv=prompt("Alert when "+tk+" rises ABOVE what price?"+curLbl+"\n(blank=skip/clear)","");
+      if(abv===null)return;
+      var blw=prompt("Alert when "+tk+" falls BELOW what price?"+curLbl+"\n(blank=skip/clear)","");
+      if(blw===null)return;
+      setPriceTarget(tk,abv,blw);
+      var hasAb=isFinite(parseFloat(abv))&&parseFloat(abv)>0;
+      var hasBl=isFinite(parseFloat(blw))&&parseFloat(blw)>0;
+      if(hasAb||hasBl){
+        var msg=tk+" target set:"+(hasAb?" \u25B2 above $"+parseFloat(abv).toFixed(2):"")+
+          (hasBl?" \u25BC below $"+parseFloat(blw).toFixed(2):"");
+        if(typeof toastMsg==="function")toastMsg(msg,"var(--accent-gold)");
+        if(typeof Notification!=="undefined"&&Notification.permission==="default"){try{Notification.requestPermission();}catch(err){}}
+      }else{
+        if(typeof toastMsg==="function")toastMsg("Target cleared for "+tk,"var(--text-muted)");
+      }
+      renderWatchlist();
+    });
+  });
   });
 }
 
@@ -2612,6 +2656,44 @@ function celebrateAth(v){
     if(typeof toastMsg==="function")toastMsg("\u25b2 New portfolio high \u2014 $"+Math.round(v).toLocaleString(),"var(--accent-gold)");
   }catch(e){}
 }
+function checkPriceTargets(){
+  var pt=S.priceTargets;
+  if(!pt||typeof pt!=="object"||Array.isArray(pt))return [];
+  var fired=[];
+  Object.keys(pt).forEach(function(tk){
+    var tgt=pt[tk];if(!tgt||typeof tgt!=="object")return;
+    var cur=curPrice(tk);if(cur==null)return;
+    if(tgt.above!=null&&cur>=tgt.above){fired.push({ticker:tk,dir:"above",target:tgt.above,price:cur});return;}
+    if(tgt.below!=null&&cur<=tgt.below){fired.push({ticker:tk,dir:"below",target:tgt.below,price:cur});}
+  });
+  return fired;
+}
+function checkAndFirePriceTargets(){
+  if(RO)return;
+  var crossed=checkPriceTargets();
+  if(!crossed.length)return;
+  crossed.forEach(function(c){
+    fireAlert("\uD83C\uDFAF "+c.ticker+" target hit",c.ticker+" "+(c.dir==="above"?"\u25B2 above":"\u25BC below")+" $"+c.target.toFixed(2)+" \u2014 now $"+c.price.toFixed(2));
+    delete S.priceTargets[c.ticker];
+  });
+  _sDirty=true;save();
+  if(S.tab==="watchlist")renderWatchlist();
+}
+function setPriceTarget(ticker,above,below){
+  if(RO)return;
+  if(!S.priceTargets||typeof S.priceTargets!=="object"||Array.isArray(S.priceTargets))S.priceTargets={};
+  var ab=parseFloat(above),bl=parseFloat(below);
+  var hasAb=isFinite(ab)&&ab>0,hasBl=isFinite(bl)&&bl>0;
+  if(!hasAb&&!hasBl){
+    delete S.priceTargets[ticker];
+  }else{
+    var entry={};
+    if(hasAb)entry.above=Math.round(ab*10000)/10000;
+    if(hasBl)entry.below=Math.round(bl*10000)/10000;
+    S.priceTargets[ticker]=entry;
+  }
+  _sDirty=true;save();
+}
 function checkAlerts(){
   var a=loadAlerts(),changed=false;
   a.forEach(function(al){
@@ -2709,7 +2791,7 @@ function refreshCryptoQuotes(){
       d.forEach(function(c){var sym=id2sym[c.id];if(!sym)return;var v=c.current_price;if(typeof v==="number"&&v>0){PRICES[sym]=Math.round(v*100)/100;CRYPTO_LIVE[sym]={price:PRICES[sym],chg24:(c.price_change_percentage_24h||0),spark:(c.sparkline_in_7d&&c.sparkline_in_7d.price)||null};changed=true;}});
       if(!changed)return;
       LIVE_TS=Date.now();
-      checkAlerts();autoAlertCheck();
+      checkAlerts();autoAlertCheck();checkAndFirePriceTargets();
       var sqEl=id("sq"),typing=sqEl&&document.activeElement===sqEl;
       var wa=id("wl-add-input"),typingW=wa&&document.activeElement===wa;
       if((S.tab==="trades"&&!typing)||S.tab==="portfolio"||(S.tab==="watchlist"&&!typingW))render();
@@ -2733,7 +2815,7 @@ function refreshStockQuotes(){
       .then(function(r){return r.ok?r.json():null;})
       .then(function(q){if(_seq!==_stockSeq)return;if(q&&typeof q.c==="number"&&q.c>0){PRICES[tk]=Math.round(q.c*100)/100;STOCK_LIVE[tk]={price:PRICES[tk],chg:(typeof q.dp==="number"?q.dp:0)};changed=true;}})
       .catch(function(){})
-      .then(function(){done++;if(done===syms.length&&changed){LIVE_TS=Date.now();checkAlerts();autoAlertCheck();
+      .then(function(){done++;if(done===syms.length&&changed){LIVE_TS=Date.now();checkAlerts();autoAlertCheck();checkAndFirePriceTargets();
         var wa=id("wl-add-input"),typingW=wa&&document.activeElement===wa;
         var fk=id("fh-key-input"),typingK=fk&&document.activeElement===fk;
         if((S.tab==="watchlist"&&!typingW&&!typingK)||S.tab==="trades"||S.tab==="portfolio")render();}});
