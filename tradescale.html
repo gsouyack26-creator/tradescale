@@ -16,7 +16,7 @@
   --bg-primary:#0d1117; --bg-secondary:#161b22; --bg-card:#1a2130;
   --accent-green:#2ebd85; --accent-red:#f6465d; --accent-blue:#4f8ff0;
   --accent-gold:#e3b341; --text-primary:#e6edf3; --text-secondary:#9aa4b2;
-  --text-muted:#6e7681; --border:#262d3a; --radius:12px;
+  --text-muted:#818c99; --border:#262d3a; --radius:12px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -161,8 +161,8 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 /* ════════ Quant Terminal Restyle ════════ */
 :root{ --accent-bright:#3dd4a0;
   --mono:"SF Mono","SFMono-Regular","Roboto Mono",Consolas,"Courier New",monospace; }
-[data-theme="bloomberg"]{--bg-primary:#080808;--bg-secondary:#111;--bg-card:#161616;--accent-green:#FF8C00;--accent-bright:#FFA500;--accent-blue:#FFD700;--accent-gold:#FFC000;--accent-red:#ff5252;--text-primary:#FFB300;--text-secondary:#CC8800;--text-muted:#886600;--border:#2a2000;}
-[data-theme="void"]{--bg-primary:#070710;--bg-secondary:#0d0d1a;--bg-card:#111122;--accent-green:#00ffcc;--accent-bright:#00ffcc;--accent-blue:#7c5cfc;--accent-gold:#c8a2f8;--accent-red:#ff5c8a;--text-primary:#e0d8ff;--text-secondary:#8888bb;--text-muted:#5555aa;--border:#1e1e38;}
+[data-theme="bloomberg"]{--bg-primary:#080808;--bg-secondary:#111;--bg-card:#161616;--accent-green:#FF8C00;--accent-bright:#FFA500;--accent-blue:#FFD700;--accent-gold:#FFC000;--accent-red:#ff5252;--text-primary:#FFB300;--text-secondary:#CC8800;--text-muted:#aa8400;--border:#2a2000;}
+[data-theme="void"]{--bg-primary:#070710;--bg-secondary:#0d0d1a;--bg-card:#111122;--accent-green:#00ffcc;--accent-bright:#00ffcc;--accent-blue:#7c5cfc;--accent-gold:#c8a2f8;--accent-red:#ff5c8a;--text-primary:#e0d8ff;--text-secondary:#8888bb;--text-muted:#7878cc;--border:#1e1e38;}
 [data-density="compact"] .wl-table td{padding:4px 8px;font-size:.8rem;}
 [data-density="compact"] .wl-table th{padding:5px 8px;}
 [data-density="compact"] .card{padding:14px;}
@@ -299,7 +299,7 @@ footer a{color:var(--accent-blue);text-decoration:none;}
 .wl-x{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0 4px;line-height:1;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
 .wl-x:hover{color:var(--accent-red);}
 .wl-actions{white-space:nowrap;}
-.wl-bell{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:.9rem;padding:0 2px;min-width:34px;min-height:44px;opacity:.55;}
+.wl-bell{background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:.9rem;padding:0 2px;min-width:34px;min-height:44px;opacity:.75;}
 .wl-bell:hover{opacity:1;}
 .wl-scroll{overflow-x:auto;max-height:65vh;overflow-y:auto;}
 .wl-table thead th{position:sticky;top:0;background:var(--bg-secondary);z-index:5;box-shadow:0 1px 0 var(--border);}
@@ -336,6 +336,16 @@ html.ts-acc #main-app{ display:block !important; }
 .brief-badge,.shift-badge,.attr-hd b,.eq-hd b{background:linear-gradient(90deg,var(--accent-blue),var(--accent-green));-webkit-background-clip:text;background-clip:text}
 .card.shift .shift-badge,.card.brief .brief-badge{-webkit-text-fill-color:transparent}
 .pf-select:focus-visible,.pf-mini:focus-visible,#pf-select:focus-visible{outline:2px solid var(--accent-blue);outline-offset:2px}
+/* a11y: focus-visible for tour, note, follow, filter-chip, scanner, import controls */
+.ts-tour-skip:focus-visible,.ts-tour-back:focus-visible,.ts-tour-next:focus-visible,
+.follow-star:focus-visible,.pn-edit:focus-visible,.pn-add:focus-visible,
+.shift-x:focus-visible,.shift-bell:focus-visible,
+.fp-chip:focus-visible,.fp-del:focus-visible,.fp-save:focus-visible,
+.scan-ctl select:focus-visible,.scan-ctl input:focus-visible,
+.imp-actions button:focus-visible,.wl-fh input:focus-visible{
+  outline:2px solid var(--accent-green);outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(46,189,133,.22);
+}
 .pf-bar select:hover{border-color:var(--accent-blue)}
 .rp-kpi:hover{border-color:var(--accent-blue)}
 .bench-building{background:linear-gradient(90deg,rgba(79,143,240,.08),transparent)}
@@ -601,7 +611,7 @@ body.ro-mode .pn-edit,body.ro-mode .pn-add{display:none!important}
 .shift-badge{font-weight:800;font-size:.9rem;color:var(--accent-blue)}
 .shift-x{background:none;border:none;color:var(--text-muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:0 4px}
 .shift-x:hover{color:var(--text-primary)}
-.shift-bell{background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;padding:0 4px;opacity:.5;filter:grayscale(1)}
+.shift-bell{background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;padding:0 4px;opacity:.75;filter:grayscale(1)}
 .shift-bell:hover{opacity:.85}
 .shift-bell.on{opacity:1;filter:none}
 
