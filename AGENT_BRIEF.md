@@ -39,3 +39,8 @@ reach this disk. The lead agent applies your spec. Return the spec as your chat 
 - Emoji/glyphs as \uXXXX escapes in JS strings.
 - Keep blast radius tiny; reuse existing fns; no new libraries.
 - Feature must be a pure additive increment; don't change existing function signatures.
+
+## Delivery rules (READ)
+- PASTE your entire spec as literal plain text in your FINAL reply. Do NOT write any file. Do NOT use shell substitution or reference a temp file — the lead cannot read your disk or your thread, only your message text.
+- Give the COMPLETE verbatim spec in one message: full JS source, each exact unique anchor string (say before/after), CSS + its anchor, any S.* default lines for BOTH loadState branches, event-binding code, RO behavior, and 8-12 harness assertions.
+- Lead harness: source-string checks read `js` (the script block) or `html` (the style block, where CSS lives); runtime checks are chk with a JS-expression STRING eval'd in a vm with S/posPnl/your fns in scope. Reassign whole objects (S.paper=[...]), never rely on property-mutation propagation.
