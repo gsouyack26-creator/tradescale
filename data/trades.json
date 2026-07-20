@@ -1,6 +1,8 @@
 {
-  "generated_at": "2026-07-18T11:58:12.990740+00:00",
+  "generated_at": "2026-07-20T13:11:20.023481+00:00",
   "prices": {
+    "BTC": 64643,
+    "ETH": 1872.77,
     "SPCX": 123.99,
     "HOOD": 99.96,
     "AMD": 495.76,
@@ -51,7 +53,20 @@
     "CODI": 10.33,
     "ET": 20.32,
     "FTAI": 207.46,
-    "SPY": 743.29
+    "SPY": 743.29,
+    "USDT": 1.0,
+    "BNB": 568.85,
+    "USDC": 1.0,
+    "XRP": 1.1,
+    "SOL": 76.7,
+    "TRX": 0.33,
+    "FIGR_HELOC": 1.02,
+    "HYPE": 61.37,
+    "DOGE": 0.07,
+    "USDS": 1.0,
+    "RAIN": 0.01,
+    "ZEC": 536.21,
+    "LEO": 9.68
   },
   "latest_trade_date": "2026-07-17",
   "source": "ARK Invest (arkfunds.io) + crypto whales (CoinGecko) + Congress (CongressInvests/EFD)",
@@ -60,7 +75,7 @@
       "id": 1,
       "name": "Cathie Wood",
       "fund": "ARK Innovation ETF (ARKK)",
-      "port": 5891708123,
+      "port": 5755718139,
       "style": "Disruptive Innovation",
       "src": "ARK daily disclosure"
     },
@@ -68,7 +83,7 @@
       "id": 2,
       "name": "Cathie Wood",
       "fund": "ARK Next Gen Internet (ARKW)",
-      "port": 1586838300,
+      "port": 1560765898,
       "style": "Next-Gen Internet / Fintech",
       "src": "ARK daily disclosure"
     },
@@ -76,7 +91,7 @@
       "id": 3,
       "name": "Cathie Wood",
       "fund": "ARK Genomic Revolution (ARKG)",
-      "port": 1622275741,
+      "port": 1628178796,
       "style": "Genomics / Biotech",
       "src": "ARK daily disclosure"
     },
@@ -92,7 +107,7 @@
       "id": 5,
       "name": "Cathie Wood",
       "fund": "ARK Autonomous Tech (ARKQ)",
-      "port": 1946794182,
+      "port": 1913579764,
       "style": "Robotics / Autonomous Tech",
       "src": "ARK daily disclosure"
     },
@@ -106,6 +121,62 @@
     },
     {
       "id": 7,
+      "name": "Michael Saylor",
+      "fund": "Strategy (BTC Treasury)",
+      "port": 54544147325,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 8,
+      "name": "Twenty One Capital",
+      "fund": "Twenty One Capital (BTC Treasury)",
+      "port": 2812875502,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 9,
+      "name": "Metaplanet",
+      "fund": "Metaplanet (BTC Treasury)",
+      "port": 2779649000,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 10,
+      "name": "MARA Holdings",
+      "fund": "MARA Holdings (BTC Treasury)",
+      "port": 2282091829,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 11,
+      "name": "Bitcoin Standard Treasury Company",
+      "fund": "Bitcoin Standard Treasury Company (BTC Treasury)",
+      "port": 1940647503,
+      "style": "BTC Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 12,
+      "name": "BitMine Immersion",
+      "fund": "BitMine Immersion (ETH Treasury)",
+      "port": 10805954065,
+      "style": "ETH Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 13,
+      "name": "Changpeng Zhao (CZ)",
+      "fund": "Binance / BNB",
+      "port": 53471900000,
+      "style": "BNB Treasury / Accumulation",
+      "src": "CoinGecko + SEC filings"
+    },
+    {
+      "id": 14,
       "name": "Jake Auchincloss",
       "fund": "House \u00b7 U.S. Congress",
       "port": 32500,
@@ -113,7 +184,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 8,
+      "id": 15,
       "name": "Tim Moore",
       "fund": "House \u00b7 U.S. Congress",
       "port": 48502,
@@ -121,7 +192,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 9,
+      "id": 16,
       "name": "David J. Taylor",
       "fund": "House \u00b7 U.S. Congress",
       "port": 48003,
@@ -129,7 +200,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 10,
+      "id": 17,
       "name": "Dwight Evans",
       "fund": "House \u00b7 U.S. Congress",
       "port": 32002,
@@ -137,7 +208,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 11,
+      "id": 18,
       "name": "Sheldon Whitehouse",
       "fund": "Senate \u00b7 U.S. Congress",
       "port": 207501,
@@ -145,7 +216,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 12,
+      "id": 19,
       "name": "Sara Jacobs",
       "fund": "House \u00b7 U.S. Congress",
       "port": 750000,
@@ -153,7 +224,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 13,
+      "id": 20,
       "name": "Tina Smith",
       "fund": "Senate \u00b7 U.S. Congress",
       "port": 350001,
@@ -161,7 +232,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 14,
+      "id": 21,
       "name": "Bernie Moreno",
       "fund": "Senate \u00b7 U.S. Congress",
       "port": 175000,
@@ -169,7 +240,7 @@
       "src": "CongressInvests (Senate EFD + House Clerk)"
     },
     {
-      "id": 15,
+      "id": 22,
       "name": "Brian Babin",
       "fund": "House \u00b7 U.S. Congress",
       "port": 107002,
@@ -179,16 +250,114 @@
   ],
   "trades": [
     {
+      "id": 44,
+      "tid": 7,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 843775.0,
+      "price": 64643,
+      "value": 54544147325,
+      "date": "2026-07-20",
+      "port": 54544147325,
+      "why": "Holds 843,775 BTC (#1 corporate BTC holder on Earth). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 45,
+      "tid": 8,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 43514.0,
+      "price": 64643,
+      "value": 2812875502,
+      "date": "2026-07-20",
+      "port": 2812875502,
+      "why": "Holds 43,514 BTC (#2 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 46,
+      "tid": 9,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 43000.0,
+      "price": 64643,
+      "value": 2779649000,
+      "date": "2026-07-20",
+      "port": 2779649000,
+      "why": "Holds 43,000 BTC (#3 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 47,
+      "tid": 10,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 35303.0,
+      "price": 64643,
+      "value": 2282091829,
+      "date": "2026-07-20",
+      "port": 2282091829,
+      "why": "Holds 35,303 BTC (#4 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 48,
+      "tid": 11,
+      "ticker": "BTC",
+      "co": "Bitcoin",
+      "action": "BUY",
+      "shares": 30021.0,
+      "price": 64643,
+      "value": 1940647503,
+      "date": "2026-07-20",
+      "port": 1940647503,
+      "why": "Holds 30,021 BTC (#5 corporate BTC holder). All purchases disclosed via SEC filings.",
+      "asset": "crypto"
+    },
+    {
+      "id": 49,
+      "tid": 12,
+      "ticker": "ETH",
+      "co": "Ethereum",
+      "action": "BUY",
+      "shares": 5770038.0,
+      "price": 1872.77,
+      "value": 10805954065,
+      "date": "2026-07-20",
+      "port": 10805954065,
+      "why": "Holds 5,770,038 ETH (largest corporate ETH holder).",
+      "asset": "crypto"
+    },
+    {
+      "id": 50,
+      "tid": 13,
+      "ticker": "BNB",
+      "co": "BNB",
+      "action": "BUY",
+      "shares": 94000000,
+      "price": 568.85,
+      "value": 53471900000,
+      "date": "2026-07-20",
+      "port": 53471900000,
+      "why": "Richest crypto figure of 2026 and the cycle's biggest fortune gainer. Majority owner of Binance; est. personal BNB stake shown at live price.",
+      "asset": "crypto"
+    },
+    {
       "id": 1,
       "tid": 1,
       "ticker": "SPCX",
       "co": "Space Exploration Technologies Corp",
       "action": "BUY",
       "shares": 95129,
-      "price": 131.11,
-      "value": 12472363,
+      "price": 123.99,
+      "value": 11795045,
       "date": "2026-07-17",
-      "port": 5891708123,
+      "port": 5755718139,
       "why": "Disruptive Innovation thesis. Buy representing 0.19% of ARKK."
     },
     {
@@ -198,10 +367,10 @@
       "co": "Robinhood Markets Inc",
       "action": "SELL",
       "shares": 59131,
-      "price": 106.02,
-      "value": 6269069,
+      "price": 99.96,
+      "value": 5910735,
       "date": "2026-07-17",
-      "port": 5891708123,
+      "port": 5755718139,
       "why": "Disruptive Innovation thesis. Sell representing 0.10% of ARKK."
     },
     {
@@ -211,10 +380,10 @@
       "co": "Advanced Micro Devices Inc",
       "action": "SELL",
       "shares": 12057,
-      "price": 500.94,
-      "value": 6039834,
+      "price": 495.76,
+      "value": 5977378,
       "date": "2026-07-17",
-      "port": 5891708123,
+      "port": 5755718139,
       "why": "Disruptive Innovation thesis. Sell representing 0.10% of ARKK."
     },
     {
@@ -224,10 +393,10 @@
       "co": "CoreWeave Inc",
       "action": "BUY",
       "shares": 81286,
-      "price": 72.91,
-      "value": 5926562,
+      "price": 73.21,
+      "value": 5950948,
       "date": "2026-07-17",
-      "port": 5891708123,
+      "port": 5755718139,
       "why": "Disruptive Innovation thesis. Buy representing 0.09% of ARKK."
     },
     {
@@ -237,10 +406,10 @@
       "co": "10X Genomics Inc",
       "action": "SELL",
       "shares": 111013,
-      "price": 44.48,
-      "value": 4937858,
+      "price": 43.74,
+      "value": 4855709,
       "date": "2026-07-17",
-      "port": 5891708123,
+      "port": 5755718139,
       "why": "Disruptive Innovation thesis. Sell representing 0.08% of ARKK."
     },
     {
@@ -250,10 +419,10 @@
       "co": "Twist Bioscience Corp",
       "action": "SELL",
       "shares": 6657,
-      "price": 91.23,
-      "value": 607318,
+      "price": 93.85,
+      "value": 624759,
       "date": "2026-07-17",
-      "port": 5891708123,
+      "port": 5755718139,
       "why": "Disruptive Innovation thesis. Sell representing 0.01% of ARKK."
     },
     {
@@ -263,10 +432,10 @@
       "co": "X-Energy Inc",
       "action": "BUY",
       "shares": 16136,
-      "price": 13.83,
-      "value": 223161,
+      "price": 14.02,
+      "value": 226227,
       "date": "2026-07-17",
-      "port": 5891708123,
+      "port": 5755718139,
       "why": "Disruptive Innovation thesis. Buy representing 0.00% of ARKK."
     },
     {
@@ -276,10 +445,10 @@
       "co": "Meta Platforms Inc",
       "action": "BUY",
       "shares": 3983,
-      "price": 664.54,
-      "value": 2646863,
+      "price": 646.01,
+      "value": 2573058,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Buy representing 0.15% of ARKW."
     },
     {
@@ -289,10 +458,10 @@
       "co": "Netflix Inc",
       "action": "BUY",
       "shares": 38068,
-      "price": 74.35,
-      "value": 2830356,
+      "price": 68.95,
+      "value": 2624789,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Buy representing 0.15% of ARKW."
     },
     {
@@ -302,10 +471,10 @@
       "co": "CoreWeave Inc",
       "action": "BUY",
       "shares": 34541,
-      "price": 72.91,
-      "value": 2518384,
+      "price": 73.21,
+      "value": 2528747,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Buy representing 0.15% of ARKW."
     },
     {
@@ -315,10 +484,10 @@
       "co": "Advanced Micro Devices Inc",
       "action": "SELL",
       "shares": 4436,
-      "price": 500.94,
-      "value": 2222170,
+      "price": 495.76,
+      "value": 2199191,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Sell representing 0.13% of ARKW."
     },
     {
@@ -328,10 +497,10 @@
       "co": "Robinhood Markets Inc",
       "action": "SELL",
       "shares": 20089,
-      "price": 106.02,
-      "value": 2129836,
+      "price": 99.96,
+      "value": 2008096,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Sell representing 0.12% of ARKW."
     },
     {
@@ -341,10 +510,10 @@
       "co": "Cloudflare Inc",
       "action": "SELL",
       "shares": 7273,
-      "price": 272.46,
-      "value": 1981602,
+      "price": 277.66,
+      "value": 2019421,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Sell representing 0.12% of ARKW."
     },
     {
@@ -354,10 +523,10 @@
       "co": "Space Exploration Technologies Corp",
       "action": "BUY",
       "shares": 9419,
-      "price": 131.11,
-      "value": 1234925,
+      "price": 123.99,
+      "value": 1167862,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Buy representing 0.07% of ARKW."
     },
     {
@@ -367,10 +536,10 @@
       "co": "Roku Inc",
       "action": "SELL",
       "shares": 197,
-      "price": 143.82,
-      "value": 28333,
+      "price": 126.76,
+      "value": 24972,
       "date": "2026-07-17",
-      "port": 1586838300,
+      "port": 1560765898,
       "why": "Next-Gen Internet / Fintech thesis. Sell representing 0.00% of ARKW."
     },
     {
@@ -380,10 +549,10 @@
       "co": "Compass Pathways PLC",
       "action": "BUY",
       "shares": 101791,
-      "price": 12.43,
-      "value": 1265262,
+      "price": 12.35,
+      "value": 1257119,
       "date": "2026-07-17",
-      "port": 1622275741,
+      "port": 1628178796,
       "why": "Genomics / Biotech thesis. Buy representing 0.08% of ARKG."
     },
     {
@@ -393,10 +562,10 @@
       "co": "AtaiBeckley Inc",
       "action": "SELL",
       "shares": 70667,
-      "price": 7.23,
-      "value": 511017,
+      "price": 7.26,
+      "value": 512876,
       "date": "2026-07-17",
-      "port": 1622275741,
+      "port": 1628178796,
       "why": "Genomics / Biotech thesis. Sell representing 0.03% of ARKG."
     },
     {
@@ -406,10 +575,10 @@
       "co": "Absci Corp",
       "action": "BUY",
       "shares": 33110,
-      "price": 8.23,
-      "value": 272495,
+      "price": 8.29,
+      "value": 274647,
       "date": "2026-07-17",
-      "port": 1622275741,
+      "port": 1628178796,
       "why": "Genomics / Biotech thesis. Buy representing 0.02% of ARKG."
     },
     {
@@ -419,10 +588,10 @@
       "co": "Prime Medicine, Inc",
       "action": "BUY",
       "shares": 81580,
-      "price": 3.22,
-      "value": 262688,
+      "price": 3.13,
+      "value": 255345,
       "date": "2026-07-17",
-      "port": 1622275741,
+      "port": 1628178796,
       "why": "Genomics / Biotech thesis. Buy representing 0.02% of ARKG."
     },
     {
@@ -432,10 +601,10 @@
       "co": "Twist Bioscience Corp",
       "action": "SELL",
       "shares": 1784,
-      "price": 91.23,
-      "value": 162754,
+      "price": 93.85,
+      "value": 167428,
       "date": "2026-07-17",
-      "port": 1622275741,
+      "port": 1628178796,
       "why": "Genomics / Biotech thesis. Sell representing 0.01% of ARKG."
     },
     {
@@ -471,10 +640,10 @@
       "co": "Iridium Communications Inc",
       "action": "SELL",
       "shares": 120058,
-      "price": 46.61,
-      "value": 5595903,
+      "price": 46.68,
+      "value": 5604307,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Sell representing 0.29% of ARKQ."
     },
     {
@@ -484,10 +653,10 @@
       "co": "AeroVironment Inc",
       "action": "BUY",
       "shares": 26300,
-      "price": 149.29,
-      "value": 3926327,
+      "price": 142.2,
+      "value": 3739860,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.20% of ARKQ."
     },
     {
@@ -497,10 +666,10 @@
       "co": "Kratos Defense and Security Solutions Inc",
       "action": "BUY",
       "shares": 82151,
-      "price": 46.96,
-      "value": 3857811,
+      "price": 46.03,
+      "value": 3781411,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.20% of ARKQ."
     },
     {
@@ -510,10 +679,10 @@
       "co": "Space Exploration Technologies Corp",
       "action": "BUY",
       "shares": 30646,
-      "price": 131.11,
-      "value": 4017997,
+      "price": 123.99,
+      "value": 3799798,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.19% of ARKQ."
     },
     {
@@ -523,10 +692,10 @@
       "co": "Intuitive Surgical Inc",
       "action": "BUY",
       "shares": 7975,
-      "price": 402.33,
-      "value": 3208582,
+      "price": 345.42,
+      "value": 2754724,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.15% of ARKQ."
     },
     {
@@ -536,10 +705,10 @@
       "co": "Advanced Micro Devices Inc",
       "action": "SELL",
       "shares": 3886,
-      "price": 500.94,
-      "value": 1946653,
+      "price": 495.76,
+      "value": 1926523,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Sell representing 0.10% of ARKQ."
     },
     {
@@ -549,10 +718,10 @@
       "co": "Caterpillar Inc",
       "action": "SELL",
       "shares": 2166,
-      "price": 877.17,
-      "value": 1899950,
+      "price": 878.65,
+      "value": 1903156,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Sell representing 0.10% of ARKQ."
     },
     {
@@ -562,10 +731,10 @@
       "co": "Deere & Co",
       "action": "SELL",
       "shares": 3171,
-      "price": 598.97,
-      "value": 1899334,
+      "price": 597.24,
+      "value": 1893848,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Sell representing 0.10% of ARKQ."
     },
     {
@@ -575,10 +744,10 @@
       "co": "Pony AI Inc",
       "action": "BUY",
       "shares": 133285,
-      "price": 6.98,
-      "value": 930329,
+      "price": 6.66,
+      "value": 887678,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.04% of ARKQ."
     },
     {
@@ -588,10 +757,10 @@
       "co": "Baidu Inc",
       "action": "SELL",
       "shares": 7651,
-      "price": 112.82,
-      "value": 863186,
+      "price": 107.24,
+      "value": 820493,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Sell representing 0.04% of ARKQ."
     },
     {
@@ -601,10 +770,10 @@
       "co": "WeRide Inc",
       "action": "BUY",
       "shares": 32861,
-      "price": 6.15,
-      "value": 202095,
+      "price": 5.98,
+      "value": 196509,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.01% of ARKQ."
     },
     {
@@ -614,10 +783,10 @@
       "co": "Kodiak AI Inc",
       "action": "BUY",
       "shares": 26792,
-      "price": 4.27,
-      "value": 114402,
+      "price": 4.28,
+      "value": 114670,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.01% of ARKQ."
     },
     {
@@ -627,10 +796,10 @@
       "co": "X-Energy Inc",
       "action": "BUY",
       "shares": 4440,
-      "price": 13.83,
-      "value": 61405,
+      "price": 14.02,
+      "value": 62249,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Buy representing 0.00% of ARKQ."
     },
     {
@@ -640,10 +809,10 @@
       "co": "Strata Critical Medical Inc",
       "action": "SELL",
       "shares": 8256,
-      "price": 5.23,
-      "value": 43179,
+      "price": 5.15,
+      "value": 42518,
       "date": "2026-07-17",
-      "port": 1946794182,
+      "port": 1913579764,
       "why": "Robotics / Autonomous Tech thesis. Sell representing 0.00% of ARKQ."
     },
     {
@@ -738,8 +907,8 @@
       "why": "Space / Aerospace thesis. Sell representing 0.00% of ARKX."
     },
     {
-      "id": 44,
-      "tid": 7,
+      "id": 51,
+      "tid": 14,
       "ticker": "STT",
       "co": "State Street Corporation (STT) [ST]",
       "action": "SELL",
@@ -751,8 +920,8 @@
       "why": "Disclosed sell by Jake Auchincloss (House). STOCK Act filing 2026-05-22. Reported range: $15,001 - $50,000."
     },
     {
-      "id": 45,
-      "tid": 8,
+      "id": 52,
+      "tid": 15,
       "ticker": "T",
       "co": "AT&T Inc. (T) [ST] P 05/18/2026 05/18/2026 $15,001 -",
       "action": "BUY",
@@ -764,8 +933,8 @@
       "why": "Disclosed buy by Tim Moore (House). STOCK Act filing 2026-05-19. Reported range: $15,001 - $50,000."
     },
     {
-      "id": 46,
-      "tid": 9,
+      "id": 53,
+      "tid": 16,
       "ticker": "GOOGL",
       "co": "Alphabet Inc. - Class A (GOOGL) [ST]",
       "action": "SELL",
@@ -777,8 +946,8 @@
       "why": "Disclosed sell by David J. Taylor (House). STOCK Act filing 2026-05-28. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 47,
-      "tid": 9,
+      "id": 54,
+      "tid": 16,
       "ticker": "AAPL",
       "co": "Apple Inc. (AAPL) [ST]",
       "action": "SELL",
@@ -790,8 +959,8 @@
       "why": "Disclosed sell by David J. Taylor (House). STOCK Act filing 2026-05-28. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 48,
-      "tid": 9,
+      "id": 55,
+      "tid": 16,
       "ticker": "T",
       "co": "AT&T Inc. (T) [ST] P 05/15/2026 05/28/2026 $1,001 - $15,000",
       "action": "BUY",
@@ -803,8 +972,8 @@
       "why": "Disclosed buy by David J. Taylor (House). STOCK Act filing 2026-05-28. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 49,
-      "tid": 9,
+      "id": 56,
+      "tid": 16,
       "ticker": "HD",
       "co": "Home Depot, Inc. (HD) [ST] P 05/15/2026 05/28/2026 $1,001 - $15,000",
       "action": "BUY",
@@ -816,8 +985,8 @@
       "why": "Disclosed buy by David J. Taylor (House). STOCK Act filing 2026-05-28. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 50,
-      "tid": 9,
+      "id": 57,
+      "tid": 16,
       "ticker": "MEDP",
       "co": "Medpace Holdings, Inc. - Common P 05/15/2026 05/28/2026 $1,001 - $15,000",
       "action": "BUY",
@@ -829,8 +998,8 @@
       "why": "Disclosed buy by David J. Taylor (House). STOCK Act filing 2026-05-28. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 51,
-      "tid": 9,
+      "id": 58,
+      "tid": 16,
       "ticker": "PH",
       "co": "Parker-Hannifin Corporation P 05/15/2026 05/28/2026 $1,001 - $15,000",
       "action": "BUY",
@@ -842,8 +1011,8 @@
       "why": "Disclosed buy by David J. Taylor (House). STOCK Act filing 2026-05-28. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 52,
-      "tid": 10,
+      "id": 59,
+      "tid": 17,
       "ticker": "AMT",
       "co": "American Tower Corporation S 05/11/2026 05/14/2026 $1,001 - $15,000",
       "action": "SELL",
@@ -855,8 +1024,8 @@
       "why": "Disclosed sell by Dwight Evans (House). STOCK Act filing 2026-05-15. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 53,
-      "tid": 11,
+      "id": 60,
+      "tid": 18,
       "ticker": "NVDA",
       "co": "NVIDIA Corporation",
       "action": "SELL",
@@ -868,8 +1037,8 @@
       "why": "Disclosed sell by Sheldon Whitehouse (Senate). STOCK Act filing 2026-06-02. Reported range: $100,001 - $250,000."
     },
     {
-      "id": 54,
-      "tid": 11,
+      "id": 61,
+      "tid": 18,
       "ticker": "ORCL",
       "co": "Oracle Corporation",
       "action": "SELL",
@@ -881,8 +1050,8 @@
       "why": "Disclosed sell by Sheldon Whitehouse (Senate). STOCK Act filing 2026-06-02. Reported range: $15,001 - $50,000."
     },
     {
-      "id": 55,
-      "tid": 12,
+      "id": 62,
+      "tid": 19,
       "ticker": "QCOM",
       "co": "QUALCOMM Incorporated (QCOM) [ST]",
       "action": "SELL",
@@ -894,8 +1063,8 @@
       "why": "Disclosed sell by Sara Jacobs (House). STOCK Act filing 2026-05-20. Reported range: $500,001 - $1,000,000."
     },
     {
-      "id": 56,
-      "tid": 8,
+      "id": 63,
+      "tid": 15,
       "ticker": "IHG",
       "co": "Intercontinental Hotels Group American Depositary Shares (IHG) [ST]",
       "action": "BUY",
@@ -907,8 +1076,8 @@
       "why": "Disclosed buy by Tim Moore (House). STOCK Act filing 2026-05-19. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 57,
-      "tid": 8,
+      "id": 64,
+      "tid": 15,
       "ticker": "RYCEY",
       "co": "ROLLS ROYCE HLDGS S/ADR P 05/07/2026 05/08/2026 $1,001 - $15,000",
       "action": "BUY",
@@ -920,8 +1089,8 @@
       "why": "Disclosed buy by Tim Moore (House). STOCK Act filing 2026-05-19. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 58,
-      "tid": 10,
+      "id": 65,
+      "tid": 17,
       "ticker": "INTC",
       "co": "Intel Corporation S (partial) 05/07/2026 05/14/2026 $1,001 - $15,000",
       "action": "SELL",
@@ -933,8 +1102,8 @@
       "why": "Disclosed sell by Dwight Evans (House). STOCK Act filing 2026-05-15. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 59,
-      "tid": 10,
+      "id": 66,
+      "tid": 17,
       "ticker": "TMO",
       "co": "Thermo Fisher Scientific Inc S (partial) 05/07/2026 05/14/2026 $1,001 - $15,000",
       "action": "SELL",
@@ -946,8 +1115,8 @@
       "why": "Disclosed sell by Dwight Evans (House). STOCK Act filing 2026-05-15. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 60,
-      "tid": 10,
+      "id": 67,
+      "tid": 17,
       "ticker": "PWR",
       "co": "Quanta Services, Inc. (PWR) [ST]",
       "action": "SELL",
@@ -959,8 +1128,8 @@
       "why": "Disclosed sell by Dwight Evans (House). STOCK Act filing 2026-05-15. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 61,
-      "tid": 13,
+      "id": 68,
+      "tid": 20,
       "ticker": "PODD",
       "co": "Insulet Corporation",
       "action": "SELL",
@@ -972,8 +1141,8 @@
       "why": "Disclosed sell by Tina Smith (Senate). STOCK Act filing 2026-05-10. Reported range: $100,001 - $250,000."
     },
     {
-      "id": 62,
-      "tid": 13,
+      "id": 69,
+      "tid": 20,
       "ticker": "DXCM",
       "co": "DexCom, Inc.",
       "action": "SELL",
@@ -985,8 +1154,8 @@
       "why": "Disclosed sell by Tina Smith (Senate). STOCK Act filing 2026-05-10. Reported range: $100,001 - $250,000."
     },
     {
-      "id": 63,
-      "tid": 14,
+      "id": 70,
+      "tid": 21,
       "ticker": "ETOR",
       "co": "eToro Group Ltd. - Class A Common Shares",
       "action": "SELL",
@@ -998,8 +1167,8 @@
       "why": "Disclosed sell by Bernie Moreno (Senate). STOCK Act filing 2026-05-22. Reported range: $100,001 - $250,000."
     },
     {
-      "id": 64,
-      "tid": 15,
+      "id": 71,
+      "tid": 22,
       "ticker": "RRC",
       "co": "Range Resources Corporation (RRC) [ST]",
       "action": "SELL",
@@ -1011,8 +1180,8 @@
       "why": "Disclosed sell by Brian Babin (House). STOCK Act filing 2026-05-18. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 65,
-      "tid": 15,
+      "id": 72,
+      "tid": 22,
       "ticker": "ENB",
       "co": "Enbridge Inc (ENB) [ST]",
       "action": "SELL",
@@ -1024,8 +1193,8 @@
       "why": "Disclosed sell by Brian Babin (House). STOCK Act filing 2026-05-18. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 66,
-      "tid": 15,
+      "id": 73,
+      "tid": 22,
       "ticker": "CODI",
       "co": "D/B/A Compass Diversified Holdings S 05/05/2026 05/08/2026 $1,001 - $15,000",
       "action": "SELL",
@@ -1037,8 +1206,8 @@
       "why": "Disclosed sell by Brian Babin (House). STOCK Act filing 2026-05-18. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 67,
-      "tid": 15,
+      "id": 74,
+      "tid": 22,
       "ticker": "ET",
       "co": "Energy Transfer LP Common Units S (partial) 05/05/2026 05/08/2026 $1,001 - $15,000",
       "action": "SELL",
@@ -1050,8 +1219,8 @@
       "why": "Disclosed sell by Brian Babin (House). STOCK Act filing 2026-05-18. Reported range: $1,001 - $15,000."
     },
     {
-      "id": 68,
-      "tid": 15,
+      "id": 75,
+      "tid": 22,
       "ticker": "FTAI",
       "co": "FTAI Aviation Ltd. (FTAI) [ST]",
       "action": "SELL",
